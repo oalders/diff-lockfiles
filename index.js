@@ -1,4 +1,3 @@
-const isEqual = require('lodash/isEqual');
 const chalk = require('chalk');
 const semver = require('semver');
 
