@@ -10,6 +10,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "chalk": "^3.0.0",
+    "commander": "^4.0.0",
     "semver": "^6.3.0"
   }
 }
