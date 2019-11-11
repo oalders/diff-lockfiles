@@ -6,6 +6,9 @@
     "type": "git",
     "url": "git@github.com:mayavera/lock-diff.git"
   },
+  "bin": {
+    "lock-diff": "./index.js"
+  },
   "main": "index.js",
   "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
   "license": "UNLICENSED",
