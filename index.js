@@ -67,5 +67,11 @@ commander
         print(changes);
         break;
     }
+
+    if (Object.keys(changes).length > 0) {
+      process.exit(1);
+    } else {
+      process.exit(0);
+    }
   })
   .parse(process.argv);
