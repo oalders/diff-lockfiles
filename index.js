@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+const fs = require('fs');
 const chalk = require('chalk');
 const semver = require('semver');
 const commander = require('commander');
@@ -48,8 +48,8 @@ commander
   .version('0.1.0')
   .arguments('<oldPath> <newPath>')
   .action((oldPath, newPath) => {
-    const oldLock = require(`./${oldPath}`);
-    const newLock = require(`./${newPath}`);
+    const oldLock = JSON.parse(fs.readFileSync(oldPath));
+    const newLock = JSON.parse(fs.readFileSync(newPath));
 
     const changes = diff(oldLock, newLock);
     
