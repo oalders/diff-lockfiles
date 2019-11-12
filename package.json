@@ -6,12 +6,13 @@
     "type": "git",
     "url": "git@github.com:mayavera/lock-diff.git"
   },
-  "bin": {
-    "lock-diff": "./index.js"
-  },
-  "main": "index.js",
+  "bin": "./bin/diff.js",
+  "main": "lib/index.js",
   "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
   "license": "UNLICENSED",
+  "scripts": {
+    "start": "./bin/diff.js"
+  },
   "dependencies": {
     "chalk": "^3.0.0",
     "commander": "^4.0.0",
