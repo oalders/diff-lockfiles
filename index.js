@@ -13,7 +13,11 @@ function diff (oldLock, newLock) {
 
   for (const [name, { version }] of Object.entries(newLock.dependencies)) {
     if (changes[name]) {
-      changes[name] = [changes[name][0], version];
+      if (semver.eq(changes[name][0], version)) {
+        delete changes[name];
+      } else {
+        changes[name] = [changes[name][0], version];
+      }
     } else {
       changes[name] = [null, version];
     }
@@ -47,12 +51,21 @@ function print (changes) {
 commander
   .version('0.1.0')
   .arguments('<oldPath> <newPath>')
+  .option('-f, --format <format>', 'changes the output format', 'text')
   .action((oldPath, newPath) => {
     const oldLock = JSON.parse(fs.readFileSync(oldPath));
     const newLock = JSON.parse(fs.readFileSync(newPath));
 
     const changes = diff(oldLock, newLock);
     
-    print(changes);
+    switch (commander.format) {
+      case 'json':
+        console.log(JSON.stringify(changes, null, 2));
+        break;
+      case 'text':
+      default:
+        print(changes);
+        break;
+    }
   })
   .parse(process.argv);
