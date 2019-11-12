@@ -4,10 +4,7 @@ const chalk = require('chalk');
 const semver = require('semver');
 const commander = require('commander');
 
-function diff (oldPath, newPath) {
-  const oldLock = require(`./${oldPath}`);
-  const newLock = require(`./${newPath}`);
-
+function diff (oldLock, newLock) {
   const changes = {};
 
   for (const [name, { version }] of Object.entries(oldLock.dependencies)) {
@@ -50,5 +47,12 @@ function print (changes) {
 commander
   .version('0.1.0')
   .arguments('<oldPath> <newPath>')
-  .action((oldPath, newPath) => print(diff(oldPath, newPath)))
+  .action((oldPath, newPath) => {
+    const oldLock = require(`./${oldPath}`);
+    const newLock = require(`./${newPath}`);
+
+    const changes = diff(oldLock, newLock);
+    
+    print(changes);
+  })
   .parse(process.argv);
