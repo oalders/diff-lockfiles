@@ -22,6 +22,10 @@ function diff (oldPath, newPath) {
     }
   }
 
+  return changes;
+}
+
+function print (changes) {
   for (const [name, [oldVersion, newVersion]] of Object.entries(changes)) {
     if (!oldVersion) {
 
@@ -46,5 +50,5 @@ function diff (oldPath, newPath) {
 commander
   .version('0.1.0')
   .arguments('<oldPath> <newPath>')
-  .action(diff)
+  .action((oldPath, newPath) => print(diff(oldPath, newPath)))
   .parse(process.argv);
