@@ -7,7 +7,7 @@
 
 ```
 
-Usage: diff [options] <oldPath> <newPath>
+Usage: lock-diff [options] <oldPath> <newPath>
 
 Options:
   -V, --version          output the version number
