@@ -5,7 +5,7 @@ const commander = require('commander');
 const { diff, print } = require('../lib/index');
 
 commander
-  .version('0.1.0')
+  .version('0.5.0')
   .arguments('<oldPath> <newPath>')
   .option('-f, --format <format>', 'changes the output format', 'text')
   .option('-p, --pretty', 'improves readability of certain output formats', false)
