@@ -17,7 +17,8 @@
   "dependencies": {
     "chalk": "^3.0.0",
     "commander": "^4.0.0",
-    "semver": "^6.3.0"
+    "semver": "^6.3.0",
+    "table": "^5.4.6"
   },
   "devDependencies": {
     "eslint": "^6.6.0",
