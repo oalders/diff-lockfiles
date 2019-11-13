@@ -13,9 +13,10 @@ commander
     const newLock = JSON.parse(fs.readFileSync(newPath));
 
     const changes = diff(oldLock, newLock);
-    
+
     switch (commander.format) {
       case 'json':
+        // eslint-disable-next-line no-console
         console.log(JSON.stringify(changes, null, 2));
         break;
       case 'text':

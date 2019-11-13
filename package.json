@@ -11,11 +11,17 @@
   "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
   "license": "UNLICENSED",
   "scripts": {
-    "start": "./bin/diff.js"
+    "start": "./bin/diff.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "chalk": "^3.0.0",
     "commander": "^4.0.0",
     "semver": "^6.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^6.6.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
   }
 }
