@@ -9,7 +9,7 @@
   "bin": "./bin/diff.js",
   "main": "lib/index.js",
   "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "start": "./bin/diff.js",
     "lint": "eslint ."
