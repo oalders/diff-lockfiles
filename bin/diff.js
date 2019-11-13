@@ -14,16 +14,7 @@ commander
 
     const changes = diff(oldLock, newLock);
 
-    switch (commander.format) {
-      case 'json':
-        // eslint-disable-next-line no-console
-        console.log(JSON.stringify(changes, null, 2));
-        break;
-      case 'text':
-      default:
-        print(changes);
-        break;
-    }
+    print(changes, commander.format);
 
     if (Object.keys(changes).length > 0) {
       process.exit(1);
