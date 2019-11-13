@@ -6,12 +6,16 @@
 ## Usage
 
 ```
+
 Usage: diff [options] <oldPath> <newPath>
 
 Options:
   -V, --version          output the version number
   -f, --format <format>  changes the output format (default: "text")
+  -p, --pretty           improves readability of certain output formats (default: false)
+  -c, --color            colorizes certain output formats (default: false)
   -h, --help             output usage information
+
 ```
 
 ## Examples
