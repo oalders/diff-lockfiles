@@ -3,6 +3,14 @@
 [![npm](https://img.shields.io/npm/v/lock-diff)](https://www.npmjs.com/package/lock-diff)
 [![airbnb-style](https://img.shields.io/badge/style-airbnb-blue.svg)](https://github.com/airbnb/javascript)
 
+## Example
+
+```sh
+mv package-lock.json package-lock.old.json
+npm install
+lock-diff package-lock.old.json package-lock.json
+```
+
 ## Usage
 
 ```
@@ -17,8 +25,6 @@ Options:
   -h, --help             output usage information
 
 ```
-
-## Examples
 
 ### `--format=text` (default)
 
