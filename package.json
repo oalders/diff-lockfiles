@@ -12,7 +12,8 @@
   "license": "MIT",
   "scripts": {
     "start": "./bin/lock-diff.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "jest"
   },
   "dependencies": {
     "chalk": "^3.0.0",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "eslint": "^6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.18.2"
+    "eslint-plugin-import": "^2.18.2",
+    "jest": "^24.9.0"
   }
 }
