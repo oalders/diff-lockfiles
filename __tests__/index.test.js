@@ -1,13 +1,13 @@
-const { diff } = require('../lib/index');
+import { diff } from '../lib/index.js';
 
 describe('diff', () => {
   it('returns an empty object when given two empty objects', () => {
     const oldLock = {
-      dependencies: {},
+      packages: {},
     };
 
     const newLock = {
-      dependencies: {},
+      packages: {},
     };
 
     const changes = diff(oldLock, newLock);

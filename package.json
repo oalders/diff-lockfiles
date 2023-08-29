@@ -1,11 +1,12 @@
 {
   "name": "lock-diff",
-  "version": "0.7.0",
+  "version": "0.9.0",
   "description": "a diff for package-lock.json files",
   "repository": {
     "type": "git",
-    "url": "git@github.com:mayavera/lock-diff.git"
+    "url": "git@github.com:oalders/lock-diff.git"
   },
+  "type": "module",
   "bin": "./bin/lock-diff.js",
   "main": "lib/index.js",
   "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
