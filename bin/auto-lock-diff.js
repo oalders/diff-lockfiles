@@ -32,27 +32,29 @@ const lockFileString = async function getLockFileString(maxBuffer, branch, filen
 
 const cli = new Command();
 cli
+    .command('auto-lock-diff.js')
+    .description('diff all changed package-lock.json files in repo')
     .version('0.9.0')
     .arguments('<oldPath> <newPath>')
     .option('-f, --format <format>', 'changes the output format', 'text')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
     .option('-p, --pretty', 'improves readability of certain output formats', false)
     .option('-c, --color', 'colorizes certain output formats', false)
-    .action((oldPath, newPath) => {
+    .action((oldPath, newPath, options) => {
         lockFiles(oldPath, newPath).then((v) => {
             for (let filename of v) {
-                const a = lockFileString(cli.maxBuffer, oldPath, filename).then((s) => { return JSON.parse(s); });
-                const b = lockFileString(cli.maxBuffer, newPath, filename).then((s) => { return JSON.parse(s); });
+                const a = lockFileString(options.maxBuffer, oldPath, filename).then((s) => { return JSON.parse(s); });
+                const b = lockFileString(options.maxBuffer, newPath, filename).then((s) => { return JSON.parse(s); });
                 Promise.all([a, b]).then((values) => {
                     const changes = diff(values[0], values[1]);
                     print(changes, {
-                        color: cli.color,
-                        format: cli.format,
-                        pretty: cli.pretty,
+                        color: options.color,
+                        format: options.format,
+                        pretty: options.pretty,
                         title: filename,
                     });
                 });
             }
         });
     })
-    .parse(process.argv);
+    .parse();

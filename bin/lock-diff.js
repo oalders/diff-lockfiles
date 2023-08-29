@@ -12,16 +12,16 @@ cli
   .option('-f, --format <format>', 'changes the output format', 'text')
   .option('-p, --pretty', 'improves readability of certain output formats', false)
   .option('-c, --color', 'colorizes certain output formats', false)
-  .action((oldPath, newPath) => {
+  .action((oldPath, newPath, options) => {
     const oldLock = JSON.parse(readFileSync(oldPath));
     const newLock = JSON.parse(readFileSync(newPath));
 
     const changes = diff(oldLock, newLock);
 
     print(changes, {
-      format: cli.format,
-      pretty: cli.pretty,
-      color: cli.color,
+      format: options.format,
+      pretty: options.pretty,
+      color: options.color,
     });
 
     if (Object.keys(changes).length > 0) {
@@ -30,4 +30,4 @@ cli
       process.exit(0);
     }
   })
-  .parse(process.argv);
+  .parse();
