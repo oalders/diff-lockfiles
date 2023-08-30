@@ -1,284 +1,419 @@
-# lock-diff
+# diff-lockfiles
 
-[![npm](https://img.shields.io/npm/v/lock-diff)](https://www.npmjs.com/package/lock-diff)
+Note: this is a fork of <https://github.com/mxweaver/lock-diff>, but it
+operates on Git commit ranges rather than on files.
+
+[![npm](https://img.shields.io/npm/v/diff-lockfiles)](https://www.npmjs.com/package/diff-lockfiles)
 [![airbnb-style](https://img.shields.io/badge/style-airbnb-blue.svg)](https://github.com/airbnb/javascript)
 
 ## Example
 
 ```sh
-mv package-lock.json package-lock.old.json
 npm install
-lock-diff package-lock.old.json package-lock.json
+diff-lockfiles origin/main dependabot/branch
 ```
 
 ## Usage
 
-```
+```text
+Usage:  auto-lock-diff.js [options] <from> <to>
 
-Usage: lock-diff [options] <oldPath> <newPath>
+diff all changed package-lock.json files in repo
 
 Options:
   -V, --version          output the version number
   -f, --format <format>  changes the output format (default: "text")
-  -p, --pretty           improves readability of certain output formats (default: false)
+  -m, --max-buffer       maximum read buffer size
   -c, --color            colorizes certain output formats (default: false)
-  -h, --help             output usage information
-
+  -h, --help             display help for command
 ```
 
 ### `--format=text` (default)
 
-```
-> lock-diff data/lodash.4-17-11.package-lock.json data/lodash.4-17-15.package-lock.json 
-ajv 5.5.2 -> 6.10.2
-async 2.6.0 -> 2.6.3
-chokidar 1.6.1 -> 1.7.0
-co added
-dojo 1.13.0 -> 1.15.0
-ecstatic 2.2.1 -> 2.2.2
-fast-deep-equal 1.1.0 -> 2.0.1
-fill-range 2.2.3 -> 2.2.4
-glob 7.1.2 -> 7.1.4
-handlebars 4.0.11 -> 4.1.2
-he 1.1.1 -> 1.2.0
-jquery 3.3.1 -> 3.4.1
-js-yaml 3.6.1 -> 3.13.1
-json-schema-traverse 0.3.1 -> 0.4.1
-lodash 4.17.3 -> 4.17.14
-lodash.merge 4.6.1 -> 4.6.2
-mime 1.2.11 -> 1.6.0
-randomatic 1.1.7 -> 3.1.1
-request 2.85.0 -> 2.88.0
-requirejs 2.3.5 -> 2.3.6
-stringstream added
-chownr removed
-deep-extend removed
-fs-minipass removed
-math-random removed
-minipass removed
-minizlib removed
-neo-async removed
-psl removed
-rc removed
-tar removed
-uri-js removed
-
+```text
+$ diff-lockfiles.js --format text HEAD~1 HEAD
+node_modules/@jest/console 29.6.2 -> 29.6.3
+node_modules/@jest/core 29.6.2 -> 29.6.3
+node_modules/@jest/environment 29.6.2 -> 29.6.3
+node_modules/@jest/expect 29.6.2 -> 29.6.3
+node_modules/@jest/expect-utils 29.6.2 -> 29.6.3
+node_modules/@jest/fake-timers 29.6.2 -> 29.6.3
+node_modules/@jest/globals 29.6.2 -> 29.6.3
+node_modules/@jest/reporters 29.6.2 -> 29.6.3
+node_modules/@jest/schemas 29.6.0 -> 29.6.3
+node_modules/@jest/source-map 29.6.0 -> 29.6.3
+node_modules/@jest/test-result 29.6.2 -> 29.6.3
+node_modules/@jest/test-sequencer 29.6.2 -> 29.6.3
+node_modules/@jest/transform 29.6.2 -> 29.6.3
+node_modules/@jest/types 29.6.1 -> 29.6.3
+node_modules/@types/babel__core 7.20.0 -> 7.20.1
+node_modules/@types/babel__traverse 7.18.2 -> 7.20.1
+node_modules/babel-jest 29.6.2 -> 29.6.3
+node_modules/babel-plugin-jest-hoist 29.5.0 -> 29.6.3
+node_modules/babel-preset-jest 29.5.0 -> 29.6.3
+node_modules/dedent 1.3.0 -> 1.5.1
+node_modules/diff-sequences 29.4.3 -> 29.6.3
+node_modules/expect 29.6.2 -> 29.6.3
+node_modules/fsevents 2.3.2 -> 2.3.3
+node_modules/is-core-module 2.12.1 -> 2.13.0
+node_modules/jest 29.6.2 -> 29.6.3
+node_modules/jest-changed-files 29.5.0 -> 29.6.3
+node_modules/jest-circus 29.6.2 -> 29.6.3
+node_modules/jest-cli 29.6.2 -> 29.6.3
+node_modules/jest-config 29.6.2 -> 29.6.3
+node_modules/jest-diff 29.6.2 -> 29.6.3
+node_modules/jest-docblock 29.4.3 -> 29.6.3
+node_modules/jest-each 29.6.2 -> 29.6.3
+node_modules/jest-environment-node 29.6.2 -> 29.6.3
+node_modules/jest-get-type 29.4.3 -> 29.6.3
+node_modules/jest-haste-map 29.6.2 -> 29.6.3
+node_modules/jest-leak-detector 29.6.2 -> 29.6.3
+node_modules/jest-matcher-utils 29.6.2 -> 29.6.3
+node_modules/jest-message-util 29.6.2 -> 29.6.3
+node_modules/jest-mock 29.6.2 -> 29.6.3
+node_modules/jest-regex-util 29.4.3 -> 29.6.3
+node_modules/jest-resolve 29.6.2 -> 29.6.3
+node_modules/jest-resolve-dependencies 29.6.2 -> 29.6.3
+node_modules/jest-runner 29.6.2 -> 29.6.3
+node_modules/jest-runtime 29.6.2 -> 29.6.3
+node_modules/jest-snapshot 29.6.2 -> 29.6.3
+node_modules/jest-util 29.6.2 -> 29.6.3
+node_modules/jest-validate 29.6.2 -> 29.6.3
+node_modules/jest-watcher 29.6.2 -> 29.6.3
+node_modules/jest-worker 29.6.2 -> 29.6.3
+node_modules/pretty-format 29.6.2 -> 29.6.3
+node_modules/resolve 1.22.2 -> 1.22.4
+node_modules/@jest/reporters/node_modules/istanbul-lib-instrument added
 ```
 
 ### `--format=json`
 
-```
-> lock-diff data/lodash.4-17-11.package-lock.json data/lodash.4-17-15.package-lock.json --format=json
-{"ajv":["5.5.2","6.10.2"],"async":["2.6.0","2.6.3"],"chokidar":["1.6.1","1.7.0"],"co":["4.6.0",null],"dojo":["1.13.0","1.15.0"],"ecstatic":["2.2.1","2.2.2"],"fast-deep-equal":["1.1.0","2.0.1"],"fill-range":["2.2.3","2.2.4"],"glob":["7.1.2","7.1.4"],"handlebars":["4.0.11","4.1.2"],"he":["1.1.1","1.2.0"],"jquery":["3.3.1","3.4.1"],"js-yaml":["3.6.1","3.13.1"],"json-schema-traverse":["0.3.1","0.4.1"],"lodash":["4.17.3","4.17.14"],"lodash.merge":["4.6.1","4.6.2"],"mime":["1.2.11","1.6.0"],"randomatic":["1.1.7","3.1.1"],"request":["2.85.0","2.88.0"],"requirejs":["2.3.5","2.3.6"],"stringstream":["0.0.5",null],"chownr":[null,"1.1.2"],"deep-extend":[null,"0.6.0"],"fs-minipass":[null,"1.2.6"],"math-random":[null,"1.0.4"],"minipass":[null,"2.3.5"],"minizlib":[null,"1.2.1"],"neo-async":[null,"2.6.1"],"psl":[null,"1.2.0"],"rc":[null,"1.2.8"],"tar":[null,"4.4.10"],"uri-js":[null,"4.2.2"]}
-```
+`diff-lockfiles.js --format text HEAD~1 HEAD`
 
-### `--format=json --pretty`
-
-```
-> lock-diff data/lodash.4-17-11.package-lock.json data/lodash.4-17-15.package-lock.json --format=json --pretty
+```json
 {
-  "ajv": [
-    "5.5.2",
-    "6.10.2"
+  "node_modules/@jest/console": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "async": [
-    "2.6.0",
-    "2.6.3"
+  "node_modules/@jest/core": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "chokidar": [
-    "1.6.1",
-    "1.7.0"
+  "node_modules/@jest/environment": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "co": [
-    "4.6.0",
-    null
+  "node_modules/@jest/expect": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "dojo": [
-    "1.13.0",
-    "1.15.0"
+  "node_modules/@jest/expect-utils": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "ecstatic": [
-    "2.2.1",
-    "2.2.2"
+  "node_modules/@jest/fake-timers": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "fast-deep-equal": [
-    "1.1.0",
-    "2.0.1"
+  "node_modules/@jest/globals": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "fill-range": [
-    "2.2.3",
-    "2.2.4"
+  "node_modules/@jest/reporters": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "glob": [
-    "7.1.2",
-    "7.1.4"
+  "node_modules/@jest/schemas": [
+    "29.6.0",
+    "29.6.3"
   ],
-  "handlebars": [
-    "4.0.11",
-    "4.1.2"
+  "node_modules/@jest/source-map": [
+    "29.6.0",
+    "29.6.3"
   ],
-  "he": [
-    "1.1.1",
-    "1.2.0"
+  "node_modules/@jest/test-result": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "jquery": [
-    "3.3.1",
-    "3.4.1"
+  "node_modules/@jest/test-sequencer": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "js-yaml": [
-    "3.6.1",
-    "3.13.1"
+  "node_modules/@jest/transform": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "json-schema-traverse": [
-    "0.3.1",
-    "0.4.1"
+  "node_modules/@jest/types": [
+    "29.6.1",
+    "29.6.3"
   ],
-  "lodash": [
-    "4.17.3",
-    "4.17.14"
+  "node_modules/@types/babel__core": [
+    "7.20.0",
+    "7.20.1"
   ],
-  "lodash.merge": [
-    "4.6.1",
-    "4.6.2"
+  "node_modules/@types/babel__traverse": [
+    "7.18.2",
+    "7.20.1"
   ],
-  "mime": [
-    "1.2.11",
-    "1.6.0"
+  "node_modules/babel-jest": [
+    "29.6.2",
+    "29.6.3"
   ],
-  "randomatic": [
-    "1.1.7",
-    "3.1.1"
+  "node_modules/babel-plugin-jest-hoist": [
+    "29.5.0",
+    "29.6.3"
   ],
-  "request": [
-    "2.85.0",
-    "2.88.0"
+  "node_modules/babel-preset-jest": [
+    "29.5.0",
+    "29.6.3"
   ],
-  "requirejs": [
-    "2.3.5",
-    "2.3.6"
+  "node_modules/dedent": [
+    "1.3.0",
+    "1.5.1"
   ],
-  "stringstream": [
-    "0.0.5",
-    null
+  "node_modules/diff-sequences": [
+    "29.4.3",
+    "29.6.3"
   ],
-  "chownr": [
+  "node_modules/expect": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/fsevents": [
+    "2.3.2",
+    "2.3.3"
+  ],
+  "node_modules/is-core-module": [
+    "2.12.1",
+    "2.13.0"
+  ],
+  "node_modules/jest": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-changed-files": [
+    "29.5.0",
+    "29.6.3"
+  ],
+  "node_modules/jest-circus": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-cli": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-config": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-diff": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-docblock": [
+    "29.4.3",
+    "29.6.3"
+  ],
+  "node_modules/jest-each": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-environment-node": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-get-type": [
+    "29.4.3",
+    "29.6.3"
+  ],
+  "node_modules/jest-haste-map": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-leak-detector": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-matcher-utils": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-message-util": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-mock": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-regex-util": [
+    "29.4.3",
+    "29.6.3"
+  ],
+  "node_modules/jest-resolve": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-resolve-dependencies": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-runner": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-runtime": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-snapshot": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-util": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-validate": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-watcher": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/jest-worker": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/pretty-format": [
+    "29.6.2",
+    "29.6.3"
+  ],
+  "node_modules/resolve": [
+    "1.22.2",
+    "1.22.4"
+  ],
+  "node_modules/@jest/reporters/node_modules/istanbul-lib-instrument": [
     null,
-    "1.1.2"
-  ],
-  "deep-extend": [
-    null,
-    "0.6.0"
-  ],
-  "fs-minipass": [
-    null,
-    "1.2.6"
-  ],
-  "math-random": [
-    null,
-    "1.0.4"
-  ],
-  "minipass": [
-    null,
-    "2.3.5"
-  ],
-  "minizlib": [
-    null,
-    "1.2.1"
-  ],
-  "neo-async": [
-    null,
-    "2.6.1"
-  ],
-  "psl": [
-    null,
-    "1.2.0"
-  ],
-  "rc": [
-    null,
-    "1.2.8"
-  ],
-  "tar": [
-    null,
-    "4.4.10"
-  ],
-  "uri-js": [
-    null,
-    "4.2.2"
+    "6.0.0"
   ]
 }
-
 ```
 
 ### `--format=table`
 
-```
-> lock-diff data/lodash.4-17-11.package-lock.json data/lodash.4-17-15.package-lock.json --format=json
-╔══════════════════════╤═════════════╤═════════════╗
-║ package              │ old version │ new version ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ ajv                  │ 5.5.2       │ 6.10.2      ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ async                │ 2.6.0       │ 2.6.3       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ chokidar             │ 1.6.1       │ 1.7.0       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ co                   │ 4.6.0       │             ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ dojo                 │ 1.13.0      │ 1.15.0      ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ ecstatic             │ 2.2.1       │ 2.2.2       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ fast-deep-equal      │ 1.1.0       │ 2.0.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ fill-range           │ 2.2.3       │ 2.2.4       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ glob                 │ 7.1.2       │ 7.1.4       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ handlebars           │ 4.0.11      │ 4.1.2       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ he                   │ 1.1.1       │ 1.2.0       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ jquery               │ 3.3.1       │ 3.4.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ js-yaml              │ 3.6.1       │ 3.13.1      ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ json-schema-traverse │ 0.3.1       │ 0.4.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ lodash               │ 4.17.3      │ 4.17.14     ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ lodash.merge         │ 4.6.1       │ 4.6.2       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ mime                 │ 1.2.11      │ 1.6.0       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ randomatic           │ 1.1.7       │ 3.1.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ request              │ 2.85.0      │ 2.88.0      ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ requirejs            │ 2.3.5       │ 2.3.6       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ stringstream         │ 0.0.5       │             ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ chownr               │             │ 1.1.2       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ deep-extend          │             │ 0.6.0       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ fs-minipass          │             │ 1.2.6       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ math-random          │             │ 1.0.4       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ minipass             │             │ 2.3.5       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ minizlib             │             │ 1.2.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ neo-async            │             │ 2.6.1       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ psl                  │             │ 1.2.0       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ rc                   │             │ 1.2.8       ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ tar                  │             │ 4.4.10      ║
-╟──────────────────────┼─────────────┼─────────────╢
-║ uri-js               │             │ 4.2.2       ║
-╚══════════════════════╧═════════════╧═════════════╝
-
+```texst
+$ diff-lockfiles.js --format table HEAD~1 HEAD
+╔═══════════════════════════════════════════════════════════════════╤═════════════╤═════════════╗
+║ package-lock.json                                                 │             │             ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ package                                                           │ old version │ new version ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/console                                        │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/core                                           │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/environment                                    │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/expect                                         │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/expect-utils                                   │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/fake-timers                                    │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/globals                                        │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/reporters                                      │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/schemas                                        │ 29.6.0      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/source-map                                     │ 29.6.0      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/test-result                                    │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/test-sequencer                                 │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/transform                                      │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/types                                          │ 29.6.1      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@types/babel__core                                   │ 7.20.0      │ 7.20.1      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@types/babel__traverse                               │ 7.18.2      │ 7.20.1      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/babel-jest                                           │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/babel-plugin-jest-hoist                              │ 29.5.0      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/babel-preset-jest                                    │ 29.5.0      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/dedent                                               │ 1.3.0       │ 1.5.1       ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/diff-sequences                                       │ 29.4.3      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/expect                                               │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/fsevents                                             │ 2.3.2       │ 2.3.3       ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/is-core-module                                       │ 2.12.1      │ 2.13.0      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest                                                 │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-changed-files                                   │ 29.5.0      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-circus                                          │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-cli                                             │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-config                                          │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-diff                                            │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-docblock                                        │ 29.4.3      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-each                                            │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-environment-node                                │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-get-type                                        │ 29.4.3      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-haste-map                                       │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-leak-detector                                   │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-matcher-utils                                   │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-message-util                                    │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-mock                                            │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-regex-util                                      │ 29.4.3      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-resolve                                         │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-resolve-dependencies                            │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-runner                                          │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-runtime                                         │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-snapshot                                        │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-util                                            │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-validate                                        │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-watcher                                         │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/jest-worker                                          │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/pretty-format                                        │ 29.6.2      │ 29.6.3      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/resolve                                              │ 1.22.2      │ 1.22.4      ║
+╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢
+║ node_modules/@jest/reporters/node_modules/istanbul-lib-instrument │ null        │ 6.0.0       ║
+╚═══════════════════════════════════════════════════════════════════╧═════════════╧═════════════╝
 ```
