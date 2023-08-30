@@ -38,7 +38,6 @@ cli
     .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format', 'text')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
-    .option('-p, --pretty', 'improves readability of certain output formats', false)
     .option('-c, --color', 'colorizes certain output formats', false)
     .action((from, to, options) => {
         lockFiles(from, to).then((v) => {
@@ -50,7 +49,6 @@ cli
                     print(changes, {
                         color: options.color,
                         format: options.format,
-                        pretty: options.pretty,
                         title: filename,
                     });
                 });
