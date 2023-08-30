@@ -35,16 +35,16 @@ cli
     .command('auto-lock-diff.js')
     .description('diff all changed package-lock.json files in repo')
     .version('0.9.0')
-    .arguments('<oldPath> <newPath>')
+    .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format', 'text')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
     .option('-p, --pretty', 'improves readability of certain output formats', false)
     .option('-c, --color', 'colorizes certain output formats', false)
-    .action((oldPath, newPath, options) => {
-        lockFiles(oldPath, newPath).then((v) => {
+    .action((from, to, options) => {
+        lockFiles(from, to).then((v) => {
             for (let filename of v) {
-                const a = lockFileString(options.maxBuffer, oldPath, filename).then((s) => { return JSON.parse(s); });
-                const b = lockFileString(options.maxBuffer, newPath, filename).then((s) => { return JSON.parse(s); });
+                const a = lockFileString(options.maxBuffer, from, filename).then((s) => { return JSON.parse(s); });
+                const b = lockFileString(options.maxBuffer, to, filename).then((s) => { return JSON.parse(s); });
                 Promise.all([a, b]).then((values) => {
                     const changes = diff(values[0], values[1]);
                     print(changes, {
