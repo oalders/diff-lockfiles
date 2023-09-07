@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { diff, print } from '../lib/index.js';
 
 const execPromise = promisify(exec);
+const version = '1.0.0';
 
 const lockFiles = async function getLockChangedLockFiles(a, b) {
     const output = await execPromise(`git diff ${a} ${b} --name-only | grep package-lock.json`);
@@ -34,7 +35,7 @@ const cli = new Command();
 cli
     .command('diff-lockfiles')
     .description('diff all changed package-lock.json files in repo')
-    .version('1.0.0')
+    .version(version)
     .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format', 'text')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
