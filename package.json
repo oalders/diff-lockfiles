@@ -4,10 +4,12 @@
   "description": "a diff for package-lock.json files",
   "repository": {
     "type": "git",
-    "url": "git@github.com:oalders/diff-lockfiles.git"
+    "url": "git+ssh://git@github.com/oalders/diff-lockfiles.git"
   },
   "type": "module",
-  "bin": "./bin/diff-lockfiles.js",
+  "bin": {
+    "diff-lockfiles": "bin/diff-lockfiles.js"
+  },
   "main": "lib/index.js",
   "author": "Olaf Alders <olaf@wundersolutions.com> (https://olafalders.com/)",
   "license": "MIT",
