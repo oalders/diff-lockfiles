@@ -418,3 +418,9 @@ $ diff-lockfiles --format table HEAD~1 HEAD
 ║ node_modules/@jest/reporters/node_modules/istanbul-lib-instrument │ null        │ 6.0.0       ║
 ╚═══════════════════════════════════════════════════════════════════╧═════════════╧═════════════╝
 ```
+
+## Testing
+
+```bash
+NODE_OPTIONS=--experimental-vm-modules npm test
+```
