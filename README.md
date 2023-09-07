@@ -4,19 +4,20 @@ Note: this is a fork of <https://github.com/mxweaver/lock-diff>, but it
 operates on Git commit ranges rather than on files.
 
 [![npm](https://img.shields.io/npm/v/diff-lockfiles)](https://www.npmjs.com/package/diff-lockfiles)
-[![airbnb-style](https://img.shields.io/badge/style-airbnb-blue.svg)](https://github.com/airbnb/javascript)
+
 
 ## Example
 
 ```sh
-npm install
+npm install diff-lockfiles
 diff-lockfiles origin/main dependabot/branch
 ```
 
 ## Usage
 
 ```text
-Usage:  auto-lock-diff.js [options] <from> <to>
+diff-lockfiles.js --help
+Usage:  diff-lockfiles.js [options] <from> <to>
 
 diff all changed package-lock.json files in repo
 

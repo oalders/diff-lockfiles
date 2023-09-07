@@ -1,18 +1,18 @@
 {
-  "name": "lock-diff",
-  "version": "0.9.0",
+  "name": "diff-lockfiles",
+  "version": "1.0.0",
   "description": "a diff for package-lock.json files",
   "repository": {
     "type": "git",
-    "url": "git@github.com:oalders/lock-diff.git"
+    "url": "git@github.com:oalders/diff-lockfiles.git"
   },
   "type": "module",
-  "bin": "./bin/lock-diff.js",
+  "bin": "./bin/diff-lockfiles.js",
   "main": "lib/index.js",
-  "author": "Maya Vera <maya@mayavera.me> (https://mayavera.me/)",
+  "author": "Olaf Alders <olaf@wundersolutions.com> (https://olafalders.com/)",
   "license": "MIT",
   "scripts": {
-    "start": "./bin/lock-diff.js",
+    "start": "./bin/diff-lockfiles.js",
     "lint": "eslint .",
     "test": "jest"
   },

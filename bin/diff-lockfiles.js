@@ -32,9 +32,9 @@ const lockFileString = async function getLockFileString(maxBuffer, branch, filen
 
 const cli = new Command();
 cli
-    .command('auto-lock-diff.js')
+    .command('diff-lockfiles.js')
     .description('diff all changed package-lock.json files in repo')
-    .version('0.9.0')
+    .version('1.0.0')
     .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format', 'text')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
