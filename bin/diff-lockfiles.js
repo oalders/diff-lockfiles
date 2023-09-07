@@ -13,10 +13,6 @@ async function lockFiles(a, b) {
     const lines = output.stdout;
     const list = lines.trim().split(/\r\n|\r|\n/);
 
-    if (output.stderr.trim !== '') {
-        // console.error(output.stderr.trim);
-    }
-
     return list;
 };
 
