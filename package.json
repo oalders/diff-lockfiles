@@ -1,6 +1,6 @@
 {
   "name": "diff-lockfiles",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "a diff for package-lock.json files",
   "repository": {
     "type": "git",
