@@ -8,19 +8,15 @@ import { diff, print } from '../lib/index.js';
 const execPromise = promisify(exec);
 const version = '1.0.2';
 
-const lockFiles = async function getLockChangedLockFiles(a, b) {
+async function lockFiles(a, b) {
     const output = await execPromise(`git diff ${a} ${b} --name-only | grep package-lock.json`);
     const lines = output.stdout;
     const list = lines.trim().split(/\r\n|\r|\n/);
 
-    if (output.stderr.trim !== '') {
-        // console.error(output.stderr.trim);
-    }
-
     return list;
 };
 
-const lockFileString = async function getLockFileString(maxBuffer, branch, filename) {
+async function lockFileString(maxBuffer, branch, filename) {
     const output = await execPromise(`git show ${branch}:${filename}`, { maxBuffer: maxBuffer });
     const lines = output.stdout.trim();
 
