@@ -16,8 +16,8 @@ diff-lockfiles origin/main dependabot/branch
 ## Usage
 
 ```text
-diff-lockfiles.js --help
-Usage:  diff-lockfiles.js [options] <from> <to>
+diff-lockfiles --help
+Usage:  diff-lockfiles [options] <from> <to>
 
 diff all changed package-lock.json files in repo
 
@@ -32,7 +32,7 @@ Options:
 ### `--format=text` (default)
 
 ```text
-$ diff-lockfiles.js --format text HEAD~1 HEAD
+$ diff-lockfiles --format text HEAD~1 HEAD
 node_modules/@jest/console 29.6.2 -> 29.6.3
 node_modules/@jest/core 29.6.2 -> 29.6.3
 node_modules/@jest/environment 29.6.2 -> 29.6.3
@@ -89,7 +89,7 @@ node_modules/@jest/reporters/node_modules/istanbul-lib-instrument added
 
 ### `--format=json`
 
-`diff-lockfiles.js --format text HEAD~1 HEAD`
+`diff-lockfiles --format text HEAD~1 HEAD`
 
 ```json
 {
@@ -307,7 +307,7 @@ node_modules/@jest/reporters/node_modules/istanbul-lib-instrument added
 ### `--format=table`
 
 ```texst
-$ diff-lockfiles.js --format table HEAD~1 HEAD
+$ diff-lockfiles --format table HEAD~1 HEAD
 ╔═══════════════════════════════════════════════════════════════════╤═════════════╤═════════════╗
 ║ package-lock.json                                                 │             │             ║
 ╟───────────────────────────────────────────────────────────────────┼─────────────┼─────────────╢

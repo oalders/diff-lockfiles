@@ -32,7 +32,7 @@ const lockFileString = async function getLockFileString(maxBuffer, branch, filen
 
 const cli = new Command();
 cli
-    .command('diff-lockfiles.js')
+    .command('diff-lockfiles')
     .description('diff all changed package-lock.json files in repo')
     .version('1.0.0')
     .arguments('<from> <to>')
