@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { diff, print } from '../lib/index.js';
 
 const execPromise = promisify(exec);
-const version = '1.0.0';
+const version = '1.0.1';
 
 const lockFiles = async function getLockChangedLockFiles(a, b) {
     const output = await execPromise(`git diff ${a} ${b} --name-only | grep package-lock.json`);
