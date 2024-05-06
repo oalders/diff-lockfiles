@@ -9,7 +9,7 @@ const execPromise = promisify(exec);
 const version = '1.0.2';
 
 async function lockFiles(a, b) {
-    const output = await execPromise(`git diff ${a} ${b} --name-only | grep package-lock.json`);
+    const output = await execPromise(`git diff ${a} ${b} --name-only | grep 'package-lock.json$'`);
     const lines = output.stdout;
     const list = lines.trim().split(/\r\n|\r|\n/);
 
