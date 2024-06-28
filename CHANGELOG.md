@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.1.0 - 2024-06-28
+
+- Added --shallow to only handle direct dependencies (GH #31) (Jussi Kosunen)
+
 ## 1.0.3 - 2024-06-06
 
 - Only diff files whose string *ends* with package-lock.json (GH #24 Tim
