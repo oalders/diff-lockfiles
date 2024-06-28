@@ -36,13 +36,14 @@ cli
     .option('-f, --format <format>', 'changes the output format (table|json|text)', 'table')
     .option('-m, --max-buffer', 'maximum read buffer size', 1024 * 10000)
     .option('-c, --color', 'colorizes certain output formats', false)
+    .option('-s, --shallow', 'only include direct dependencies of the project', false)
     .action((from, to, options) => {
         lockFiles(from, to).then((v) => {
             for (let filename of v) {
                 const a = lockFileString(options.maxBuffer, from, filename).then((s) => { return JSON.parse(s); });
                 const b = lockFileString(options.maxBuffer, to, filename).then((s) => { return JSON.parse(s); });
                 Promise.all([a, b]).then((values) => {
-                    const changes = diff(values[0], values[1]);
+                    const changes = diff(values[0], values[1], options.shallow);
                     print(changes, {
                         color: options.color,
                         format: options.format,
