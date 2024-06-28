@@ -29,6 +29,7 @@ Options:
   -f, --format <format>  changes the output format (default: "table")
   -m, --max-buffer       maximum read buffer size
   -c, --color            colorizes certain output formats (default: false)
+  -s, --shallow          only include direct dependencies of the project (default: false)
   -h, --help             display help for command
 ```
 
