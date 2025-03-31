@@ -7,12 +7,17 @@ operates on Git commit ranges rather than on files.
 
 ## Example
 
+Install `diff-lockfiles` globally:
+
 ```sh
-npm install diff-lockfiles
-diff-lockfiles --color origin/main dependabot/branch
+npm install -g diff-lockfiles
 ```
 
+Try it out:
+
 ```ssh
+diff-lockfiles --color origin/main dependabot/branch
+
 diff-lockfiles --color HEAD~1 HEAD
 ```
 
