@@ -189,6 +189,10 @@ describe('format', () => {
     expect(format({}, { format: 'text' })).toBe('');
   });
 
+  it('returns empty object string for empty changes with json format', () => {
+    expect(format({}, { format: 'json' })).toBe('{}');
+  });
+
   it('returns JSON string for json format', () => {
     const result = format(changes, { format: 'json' });
     expect(JSON.parse(result)).toEqual(changes);
