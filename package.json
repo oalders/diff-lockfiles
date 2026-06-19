@@ -4,7 +4,7 @@
   "description": "a diff for package-lock.json files",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/oalders/diff-lockfiles.git"
+    "url": "git+https://github.com/oalders/diff-lockfiles.git"
   },
   "type": "module",
   "bin": {
