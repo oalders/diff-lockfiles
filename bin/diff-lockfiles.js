@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
+import { Command, InvalidArgumentError } from 'commander';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
@@ -10,6 +10,12 @@ const execFilePromise = promisify(execFile);
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
 
+// Force the C locale on every git spawn so git's diagnostics come back in a
+// stable, English wording. lockFileString() classifies a missing path by
+// matching git's stderr text; under a translated locale that match would fail
+// and a benign added/removed lockfile would surface as a hard error.
+const gitEnv = { ...process.env, LC_ALL: 'C' };
+
 async function lockFiles(a, b) {
     // Filter in JS rather than piping through grep: a pipeline masks a failing
     // `git diff` (e.g. a bad ref) behind grep's own exit code. Letting git's
@@ -17,8 +23,11 @@ async function lockFiles(a, b) {
     // "no changed lockfiles".
     //
     // Pass the refs as an argument array via execFile (no shell), so a ref name
-    // can never be interpreted as shell syntax (command injection).
-    const output = await execFilePromise('git', ['diff', a, b, '--name-only']);
+    // can never be interpreted as shell syntax (command injection). `--end-of-options`
+    // then stops git from treating a ref that starts with `-` as an option
+    // (e.g. `--output=…`); `--name-only` must precede the marker to stay an option.
+    const output = await execFilePromise(
+        'git', ['diff', '--name-only', '--end-of-options', a, b], { env: gitEnv });
     if (output.stderr.trim() !== '') {
         console.error(output.stderr.trim());
     }
@@ -33,7 +42,7 @@ async function lockFiles(a, b) {
 async function lockFileString(maxBuffer, ref, filename) {
     try {
         const output = await execFilePromise(
-            'git', ['show', `${ref}:${filename}`], { maxBuffer });
+            'git', ['show', '--end-of-options', `${ref}:${filename}`], { maxBuffer, env: gitEnv });
 
         if (output.stderr.trim() !== '') {
             console.error(output.stderr.trim());
@@ -63,6 +72,18 @@ function parseLock(contents, filename) {
     }
 }
 
+// Reject a non-numeric or non-positive --max-buffer up front. Left unchecked,
+// parseInt yields NaN, which execFile silently coerces to its 1 MiB default and
+// then truncates larger lockfiles mid-stream, producing a confusing JSON parse
+// error far from the real cause.
+function parseMaxBuffer(value) {
+    const bytes = parseInt(value, 10);
+    if (!Number.isFinite(bytes) || bytes <= 0) {
+        throw new InvalidArgumentError('must be a positive integer number of bytes.');
+    }
+    return bytes;
+}
+
 const cli = new Command();
 cli
     .command('diff-lockfiles')
@@ -70,7 +91,7 @@ cli
     .version(version)
     .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format (table|json|markdown|text)', 'table')
-    .option('-m, --max-buffer <bytes>', 'maximum read buffer size in bytes', (value) => parseInt(value, 10), 1024 * 10000)
+    .option('-m, --max-buffer <bytes>', 'maximum read buffer size in bytes', parseMaxBuffer, 1024 * 10000)
     .option('-c, --color', 'colorizes certain output formats', false)
     .option('-s, --shallow', 'only include direct dependencies of the project', false)
     .option('-d, --fail-on-downgrade', 'exit 2 if any package version is decremented', false)
