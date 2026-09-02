@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,5 +60,66 @@ describe('diff-lockfiles CLI exit codes', () => {
 
   it('exits 1 on an invalid git ref', () => {
     expect(run('nope-a', 'nope-b', '--fail-on-downgrade').status).toBe(1);
+  });
+
+  it('accepts a numeric --max-buffer value without erroring', () => {
+    // Regression: `-m/--max-buffer` used to be defined as a boolean flag, so
+    // passing a value produced "too many arguments" (exit 1).
+    expect(run('HEAD~2', 'HEAD~1', '--max-buffer', '5000000').status).toBe(0);
+  });
+
+  it('does not execute a shell payload embedded in a ref (command injection)', () => {
+    // Regression: refs were interpolated into a shell string via `exec`, so
+    // `$(...)` in a ref executed. With execFile the ref is a literal argument.
+    const canary = join(repo, 'INJECTED');
+    if (existsSync(canary)) unlinkSync(canary);
+
+    const result = run(`HEAD~1$(touch ${canary})`, 'HEAD');
+
+    expect(existsSync(canary)).toBe(false); // payload must not have run
+    expect(result.status).not.toBe(0);      // invalid ref should fail cleanly
+  });
+});
+
+// Adding or removing a package-lock.json between the two refs means `git show`
+// cannot read it at one end; that must be reported as added/removed, not abort
+// the whole run.
+describe('diff-lockfiles CLI added/removed lockfiles', () => {
+  let repo;
+
+  const git = (...args) =>
+    spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+  const run = (...args) =>
+    spawnSync('node', [bin, ...args], { cwd: repo, encoding: 'utf8' });
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), 'diff-lockfiles-addrm-'));
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'test');
+    // HEAD~1 has no lockfile; HEAD adds one.
+    writeFileSync(join(repo, 'README.md'), 'seed');
+    git('add', '-A');
+    git('commit', '-qm', 'no lockfile');
+    writeFileSync(join(repo, 'package-lock.json'), lockfile('4.17.21'));
+    git('add', '-A');
+    git('commit', '-qm', 'add lockfile');
+  });
+
+  afterAll(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it('reports an added lockfile and exits 0', () => {
+    const result = run('HEAD~1', 'HEAD', '--format', 'text');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/added/);
+  });
+
+  it('reports a removed lockfile and exits 0', () => {
+    const result = run('HEAD', 'HEAD~1', '--format', 'text');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/removed/);
   });
 });
