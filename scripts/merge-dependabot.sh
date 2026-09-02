@@ -2,33 +2,46 @@
 #
 # merge-dependabot.sh
 #
-# Auto-merge Dependabot PRs that only move package-lock.json versions *upward*.
-# For each open Dependabot PR, oldest first:
+# Auto-merge Dependabot PRs that only move package-lock.json versions *upward*,
+# using diff-lockfiles --fail-on-downgrade as the gate.
 #
-#   1. Conflicting with main?      -> ask @dependabot rebase, revisit next round
-#   2. Behind main?                -> ask @dependabot rebase, revisit next round
-#   3. diff-lockfiles downgrade?   -> ask @dependabot rebase, revisit next round
-#   4. No downgrade + CI green
-#      (mergeStateStatus CLEAN)     -> post the markdown diff, then merge (merge commit)
-#   5. Anything else (checks still
-#      running, blocked, unknown)   -> leave it, revisit next round
+# STRICTLY SERIAL, never parallel. This matters: a bump that looks like an
+# upgrade against the base a PR branched from can be a DOWNGRADE against the
+# current main once an earlier PR has merged (PR A takes X to 2.0, PR B still
+# carries X at 1.5 -> merging B after A downgrades X). So the script:
 #
-# Because rebases and CI are asynchronous, the whole sweep repeats up to
-# MAX_ROUNDS times with SLEEP_BETWEEN seconds between rounds, until every PR is
-# either merged or parked waiting on something outside our control.
+#   * handles ONE PR at a time, oldest first, to completion before the next;
+#   * refuses to gate or merge a PR unless its branch point already equals the
+#     current main tip (i.e. it contains every prior merge). GitHub's CLEAN
+#     merge state does NOT guarantee this -- a branch behind main can still
+#     report CLEAN -- so the merge-base is checked directly here;
+#   * evaluates the downgrade gate against the *current* main, not the PR's
+#     original base;
+#   * re-reads main after every merge before touching the next PR.
+#
+# Per oldest actionable PR:
+#   1. Not up to date with main / conflicting -> @dependabot rebase, wait, retry
+#   2. diff-lockfiles reports a downgrade        -> @dependabot rebase, wait, retry
+#   3. Not mergeable yet (CI not green, blocked) -> wait, retry
+#   4. Up to date + no downgrade + CI green
+#      (mergeStateStatus CLEAN)                  -> post the markdown diff, merge
+#
+# Rebases and CI are asynchronous, so waiting on a single PR is retried up to
+# MAX_ROUNDS times with SLEEP_BETWEEN seconds between attempts before giving up
+# on it (and stopping, since later PRs must merge after this one).
 #
 # Safe by default: DRY_RUN=1 prints intended actions without commenting/merging.
 #
 # Env knobs:
 #   DRY_RUN=1|0        (default 1)  do everything except comment/rebase/merge
-#   MAX_ROUNDS=N       (default 5)  how many sweeps before giving up on stragglers
-#   SLEEP_BETWEEN=SEC  (default 60) pause between sweeps (for rebases/CI to settle)
+#   MAX_ROUNDS=N       (default 10) max consecutive waits on the current PR
+#   SLEEP_BETWEEN=SEC  (default 60) pause between waits (for rebases/CI to settle)
 #   BASE_BRANCH=name   (default main)
 
 set -euo pipefail
 
 DRY_RUN="${DRY_RUN:-1}"
-MAX_ROUNDS="${MAX_ROUNDS:-5}"
+MAX_ROUNDS="${MAX_ROUNDS:-10}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-60}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
 
@@ -72,25 +85,28 @@ merge_pr() { # pr -> 0 merged, 1 merge attempt failed (retry later)
     step "[dry-run] would merge #$1 (merge commit)"
     return 0
   fi
-  # A merge can fail if the PR went stale/conflicting since the state check
-  # (these lockfiles overlap). Don't let that abort the whole sweep.
+  # A merge can still fail if the PR went stale between the checks and here.
+  # Don't let that abort the run; the loop revisits it.
   if gh pr merge "$1" --merge 2>&1; then
     step "merged #$1"
     return 0
   fi
-  step "merge attempt failed for #$1 — will retry next round"
+  step "merge attempt failed for #$1 — will retry"
   return 1
 }
 
 # --- per-PR logic ------------------------------------------------------------
-# Return codes: 0 = settled this round (merged / skipped / rebase requested),
-#               1 = still pending, worth another round.
+# Return codes:
+#   0 = cannot act on this PR (not a lockfile bump, or a diff error) -> skip it
+#   1 = pending: waiting on a rebase / CI for THIS PR, retry it
+#   2 = merged: move on to the next PR (main has changed)
 
 process_pr() { # pr
-  local pr="$1" head base state out code
+  local pr="$1" head base main_tip state out code
 
   head="pr-$pr"
   git fetch -q --force origin "pull/$pr/head:$head"
+  main_tip="$(git rev-parse "origin/$BASE_BRANCH")"
   base="$(git merge-base "origin/$BASE_BRANCH" "$head")"
 
   # Only touch PRs that actually change a lockfile.
@@ -99,84 +115,94 @@ process_pr() { # pr
     return 0
   fi
 
+  # SERIAL GUARD. The PR must already contain the current main tip so its diff
+  # is evaluated against everything merged before it. GitHub CLEAN does not
+  # imply this, so require merge-base == main tip and rebase otherwise.
+  if [[ "$base" != "$main_tip" ]]; then
+    request_rebase "$pr" "This branch does not yet include the latest \`$BASE_BRANCH\`. Rebasing so its lockfile changes are evaluated against current \`$BASE_BRANCH\` — a version that looks like an upgrade against an older base can be a downgrade against the current one."
+    return 1
+  fi
+
   state="$(get_merge_state "$pr")"
-  step "mergeStateStatus=$state"
+  step "mergeStateStatus=$state (up to date with $BASE_BRANCH)"
 
-  case "$state" in
-    DIRTY)
-      request_rebase "$pr" "This branch conflicts with \`$BASE_BRANCH\` and needs a rebase before it can be merged."
-      return 1 ;;
-    BEHIND)
-      request_rebase "$pr" "This branch is behind \`$BASE_BRANCH\` and needs a rebase before it can be merged."
-      return 1 ;;
-  esac
+  if [[ "$state" == "DIRTY" ]]; then
+    request_rebase "$pr" "This branch conflicts with \`$BASE_BRANCH\` and needs a rebase before it can be merged."
+    return 1
+  fi
 
-  # Downgrade gate. diff-lockfiles exits 2 on a downgrade, 0 clean, 1 on error.
-  out="$("${DIFF_LOCKFILES[@]}" "$base" "$head" --format markdown --fail-on-downgrade)" && code=0 || code=$?
+  # Downgrade gate, against the CURRENT main tip (== base, guaranteed above).
+  # diff-lockfiles exits 2 on a downgrade, 0 when clean, 1 on error.
+  out="$("${DIFF_LOCKFILES[@]}" "$main_tip" "$head" --format markdown --fail-on-downgrade)" && code=0 || code=$?
   if [[ "$code" == 2 ]]; then
-    request_rebase "$pr" "\`diff-lockfiles\` found a version **downgrade** in this update:
+    request_rebase "$pr" "\`diff-lockfiles\` found a version **downgrade** in this update (evaluated against current \`$BASE_BRANCH\`):
 
 $out
 
 Requesting a rebase to pick up clean upstream versions."
     return 1
   elif [[ "$code" != 0 ]]; then
-    step "diff-lockfiles error (exit $code) — leaving PR untouched"
+    step "diff-lockfiles error (exit $code) — skipping this PR"
     return 0
   fi
 
   # No downgrade. Only merge when CI is green and the PR is mergeable.
   if [[ "$state" != "CLEAN" ]]; then
-    step "no downgrade, but not mergeable yet (state=$state) — will retry"
+    step "no downgrade, but not mergeable yet (state=$state) — waiting"
     return 1
   fi
 
   post_comment "$pr" "### \`diff-lockfiles\` report
 
-No downgrades detected — merging.
+No downgrades detected (evaluated against current \`$BASE_BRANCH\`) — merging.
 
 $out"
-  # If the merge fails (PR went stale since the state check), report pending so
-  # the sweep loop revisits it — by then it's usually BEHIND and gets a rebase.
-  merge_pr "$pr" || return 1
-  return 0
+  if merge_pr "$pr"; then return 2; fi
+  return 1
 }
 
-# --- main sweep loop ---------------------------------------------------------
+# --- main loop (one PR at a time, oldest first) ------------------------------
 
 main() {
   [[ "$DRY_RUN" == 1 ]] && log "== DRY RUN (set DRY_RUN=0 to act) =="
 
-  local round pending prs pr
-  for ((round = 1; round <= MAX_ROUNDS; round++)); do
+  local -A skip=()
+  local waits=0 prs pr candidate rc
+
+  while :; do
     git fetch -q "origin" "$BASE_BRANCH"
 
     mapfile -t prs < <(gh pr list --author "app/dependabot" --state open \
       --json number,createdAt --jq 'sort_by(.createdAt) | .[].number')
 
-    if [[ ${#prs[@]} -eq 0 ]]; then
-      log "No open Dependabot PRs. Done."
-      return 0
-    fi
-
-    log "== Round $round/$MAX_ROUNDS — ${#prs[@]} open Dependabot PR(s): ${prs[*]} =="
-    pending=0
-    for pr in "${prs[@]}"; do
-      log "#$pr $(gh pr view "$pr" --json title --jq .title)"
-      if ! process_pr "$pr"; then pending=1; fi
+    # Oldest PR we have not permanently skipped.
+    pr=""
+    for candidate in "${prs[@]}"; do
+      if [[ -z "${skip[$candidate]:-}" ]]; then pr="$candidate"; break; fi
     done
 
-    if [[ "$pending" == 0 ]]; then
-      log "Nothing left to wait on. Done."
+    if [[ -z "$pr" ]]; then
+      log "No actionable Dependabot PRs left. Done."
       return 0
     fi
-    if [[ "$round" -lt "$MAX_ROUNDS" ]]; then
-      log "Some PRs pending (rebase/CI). Sleeping ${SLEEP_BETWEEN}s before round $((round + 1))."
-      sleep "$SLEEP_BETWEEN"
-    fi
-  done
 
-  log "Reached MAX_ROUNDS=$MAX_ROUNDS with PRs still pending. Re-run later to finish."
+    log "#$pr $(gh pr view "$pr" --json title --jq .title)"
+    process_pr "$pr" && rc=$? || rc=$?
+
+    case "$rc" in
+      2) waits=0 ;;                 # merged: main changed, re-evaluate next oldest
+      0) skip["$pr"]=1; waits=0 ;;  # cannot act: skip permanently, move on
+      1)                            # waiting on a rebase / CI for this PR
+        waits=$((waits + 1))
+        if [[ "$waits" -ge "$MAX_ROUNDS" ]]; then
+          log "Gave up waiting on #$pr after $MAX_ROUNDS attempts. Stopping (later PRs merge after it). Re-run once it is ready."
+          return 0
+        fi
+        log "Waiting on #$pr (attempt $waits/$MAX_ROUNDS). Sleeping ${SLEEP_BETWEEN}s."
+        sleep "$SLEEP_BETWEEN"
+        ;;
+    esac
+  done
 }
 
 main "$@"
