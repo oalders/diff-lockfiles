@@ -34,10 +34,30 @@ describe('diff', () => {
     expect(diff(lock, structuredClone(lock))).toEqual({});
   });
 
-  it('does not throw when a lockfile has no packages field', () => {
-    expect(() => diff({}, {})).not.toThrow();
-    expect(diff({}, { packages: pkg('new', '1.0.0') })).toEqual({
+  it('diffs an empty packages object as all-added / all-removed', () => {
+    // An empty (but present) `packages` map is how the CLI models a lockfile
+    // that was added or removed between the two refs.
+    expect(diff({ packages: {} }, { packages: pkg('new', '1.0.0') })).toEqual({
       'node_modules/new': [null, '1.0.0'],
+    });
+    expect(diff({ packages: pkg('gone', '1.0.0') }, { packages: {} })).toEqual({
+      'node_modules/gone': ['1.0.0', null],
+    });
+  });
+
+  it('throws (fail-closed) when a lockfile has no packages field', () => {
+    // A missing `packages` map (e.g. a legacy npm v1 lockfile) must fail loudly
+    // rather than diff as empty, or a downgrade could slip past the gate.
+    expect(() => diff({}, { packages: {} })).toThrow(/packages/);
+    expect(() => diff({ packages: {} }, {})).toThrow(/packages/);
+  });
+
+  it('does not crash on a null package descriptor', () => {
+    const oldLock = { packages: { 'node_modules/broken': null } };
+    const newLock = { packages: { 'node_modules/broken': { version: '1.0.0' } } };
+    expect(() => diff(oldLock, newLock)).not.toThrow();
+    expect(diff(oldLock, newLock)).toEqual({
+      'node_modules/broken': [null, '1.0.0'],
     });
   });
 
@@ -52,7 +72,11 @@ describe('diff', () => {
 
     expect(({}).polluted).toBeUndefined();
     expect(Object.prototype.polluted).toBeUndefined();
-    expect(changes['__proto__']).toEqual(['1.0.0', '2.0.0']);
+    // Assert on the enumerable keys: on a plain-object accumulator `__proto__`
+    // is swallowed by the prototype setter and never appears here, so this is
+    // what actually discriminates the null-prototype fix from the bug.
+    expect(Object.keys(changes)).toContain('__proto__');
+    expect(JSON.parse(JSON.stringify(changes))['__proto__']).toEqual(['1.0.0', '2.0.0']);
   });
 
   describe('shallow', () => {
