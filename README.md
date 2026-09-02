@@ -35,7 +35,38 @@ Options:
   -m, --max-buffer       maximum read buffer size
   -c, --color            colorizes certain output formats (default: false)
   -s, --shallow          only include direct dependencies of the project (default: false)
+  -d, --fail-on-downgrade  exit 2 if any package version is decremented (default: false)
   -h, --help             display help for command
+```
+
+### `--fail-on-downgrade`
+
+By default `diff-lockfiles` always exits `0` on success, regardless of what it
+finds. Pass `--fail-on-downgrade` to turn a downgrade into a distinct exit code
+so a script or CI job can gate on it:
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success, and no package version was decremented |
+| `2` | At least one package version was decremented |
+| `1` | Error (e.g. an invalid git ref or unreadable lockfile) |
+
+Output is unchanged — the downgrade is already visible in the diff — so this
+flag only adds the exit code. A downgrade means both the old and new values are
+valid semver and the new one is lower; added, removed, and non-semver entries
+never count.
+
+This is useful for auto-merging Dependabot PRs only when the lockfile moves
+strictly forward. When PR A is merged before PR B, B's lockfile can show a mix
+of upgrades and downgrades; catch that and ask Dependabot to rebase instead:
+
+```sh
+diff-lockfiles origin/main "$PR_BRANCH" --fail-on-downgrade
+case $? in
+  0) gh pr merge --auto "$PR" ;;
+  2) gh pr comment "$PR" --body "@dependabot rebase" ;;
+  *) echo "diff-lockfiles failed" >&2; exit 1 ;;
+esac
 ```
 
 ### `--format=table` (default)
