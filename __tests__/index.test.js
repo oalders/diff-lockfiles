@@ -217,6 +217,11 @@ describe('format', () => {
     expect(result).toContain('node_modules/foo');
   });
 
+  it('omits the title row for table format when no title is given', () => {
+    const result = format(changes, { format: 'table', color: false });
+    expect(result).not.toContain('undefined');
+  });
+
   it('includes title in markdown format', () => {
     const result = format(changes, { format: 'markdown', title: 'package-lock.json' });
     expect(result).toContain('## package-lock.json');

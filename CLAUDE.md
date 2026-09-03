@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture
 
 - `bin/diff-lockfiles.js` — CLI entry point using Commander. Runs `git diff` to find changed lockfiles between two refs, parses them via `git show`, then calls `diff()` and `print()`.
-- `lib/index.js` — Core logic. Exports `diff(oldLock, newLock, shallow)` which compares `.packages` entries using semver, `format(changes, options)` which returns formatted strings (table, json, markdown, or text), and `print(changes, options)` which formats and writes to stdout. Color support via chalk.
-- `__tests__/index.test.js` — Jest tests for `diff()` and `format()`.
+- `lib/index.js` — Core logic. Exports `diff(oldLock, newLock, shallow)` which compares `.packages` entries using semver, `format(changes, options)` which returns formatted strings (table, json, markdown, or text), `print(changes, options)` which formats and writes to stdout, and `hasDowngrade(changes)` which reports whether any package version was decremented (drives the CLI's `--fail-on-downgrade` exit code). Color support via chalk.
+- `__tests__/index.test.js` — Jest unit tests for `diff()`, `format()`, and `hasDowngrade()`.
+- `__tests__/cli.test.js` — Jest integration tests for the CLI (spawns real git repos, checks exit codes and `--fail-on-downgrade`).
 - `data/` — Fixture lockfiles (lodash version variants) for testing.
