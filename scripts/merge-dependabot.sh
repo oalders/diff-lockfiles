@@ -32,11 +32,21 @@
 #
 # Safe by default: DRY_RUN=1 prints intended actions without commenting/merging.
 #
+# Run it from inside a checkout of the repo whose Dependabot PRs you want to
+# merge (gh and git infer that repo from the checkout). To run it against a
+# different repo than the one holding this script, point DIFF_LOCKFILES_BIN at
+# this repo's bin/diff-lockfiles.js.
+#
 # Env knobs:
-#   DRY_RUN=1|0        (default 1)  do everything except comment/rebase/merge
-#   MAX_ROUNDS=N       (default 10) max consecutive waits on the current PR
-#   SLEEP_BETWEEN=SEC  (default 60) pause between waits (for rebases/CI to settle)
-#   BASE_BRANCH=name   (default main)
+#   DRY_RUN=1|0          (default 1)  do everything except comment/rebase/merge
+#   MAX_ROUNDS=N         (default 10) max consecutive waits on the current PR
+#   SLEEP_BETWEEN=SEC    (default 60) pause between waits (for rebases/CI to settle)
+#   BASE_BRANCH=name     (default main)
+#   DIFF_LOCKFILES_BIN=  (default <this repo>/bin/diff-lockfiles.js) path to the
+#                        diff-lockfiles entry point, for running against another repo
+#   SKIP_PRS="104 107"   (default empty) PR numbers to never touch, so a PR that
+#                        needs a human (e.g. a major bump failing CI) does not
+#                        block the serial queue behind it
 
 set -euo pipefail
 
@@ -44,9 +54,13 @@ DRY_RUN="${DRY_RUN:-1}"
 MAX_ROUNDS="${MAX_ROUNDS:-10}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-60}"
 BASE_BRANCH="${BASE_BRANCH:-main}"
+SKIP_PRS="${SKIP_PRS:-}"
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-DIFF_LOCKFILES=(node "$REPO_ROOT/bin/diff-lockfiles.js")
+# Resolve the diff-lockfiles binary relative to this script (not the cwd), so it
+# still works when run from inside another repo's checkout.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIFF_LOCKFILES_BIN="${DIFF_LOCKFILES_BIN:-$SCRIPT_DIR/../bin/diff-lockfiles.js}"
+DIFF_LOCKFILES=(node "$DIFF_LOCKFILES_BIN")
 
 log()  { printf '%s\n' "$*" >&2; }
 step() { printf '  %s\n' "$*" >&2; }
@@ -80,6 +94,20 @@ request_rebase() { # pr, reason
   step "requested @dependabot rebase on #$1"
 }
 
+# A rebase is asynchronous, so the same PR is revisited every SLEEP_BETWEEN
+# seconds while we wait for it. Only post a fresh @dependabot rebase when the
+# situation has actually changed -- the PR got a new HEAD (a force-push landed)
+# or main moved under it -- so we don't spam the PR with identical requests.
+declare -A REBASE_REQUESTED=()
+maybe_request_rebase() { # pr, situation-key, reason
+  if [[ "${REBASE_REQUESTED[$1]:-}" == "$2" ]]; then
+    step "rebase already requested for #$1 at this state — waiting"
+    return
+  fi
+  request_rebase "$1" "$3"
+  REBASE_REQUESTED[$1]="$2"
+}
+
 merge_pr() { # pr -> 0 merged, 1 merge attempt failed (retry later)
   if [[ "$DRY_RUN" == 1 ]]; then
     step "[dry-run] would merge #$1 (merge commit)"
@@ -102,12 +130,15 @@ merge_pr() { # pr -> 0 merged, 1 merge attempt failed (retry later)
 #   2 = merged: move on to the next PR (main has changed)
 
 process_pr() { # pr
-  local pr="$1" head base main_tip state out code
+  local pr="$1" head head_sha base main_tip situation state out code
 
   head="pr-$pr"
   git fetch -q --force origin "pull/$pr/head:$head"
+  head_sha="$(git rev-parse "$head")"
   main_tip="$(git rev-parse "origin/$BASE_BRANCH")"
   base="$(git merge-base "origin/$BASE_BRANCH" "$head")"
+  # Identifies "this PR against this main"; a rebase or a main move changes it.
+  situation="$head_sha:$main_tip"
 
   # Only touch PRs that actually change a lockfile.
   if ! git diff --name-only "$base" "$head" | grep -q 'package-lock\.json$'; then
@@ -119,7 +150,7 @@ process_pr() { # pr
   # is evaluated against everything merged before it. GitHub CLEAN does not
   # imply this, so require merge-base == main tip and rebase otherwise.
   if [[ "$base" != "$main_tip" ]]; then
-    request_rebase "$pr" "This branch does not yet include the latest \`$BASE_BRANCH\`. Rebasing so its lockfile changes are evaluated against current \`$BASE_BRANCH\` — a version that looks like an upgrade against an older base can be a downgrade against the current one."
+    maybe_request_rebase "$pr" "$situation" "This branch does not yet include the latest \`$BASE_BRANCH\`. Rebasing so its lockfile changes are evaluated against current \`$BASE_BRANCH\` — a version that looks like an upgrade against an older base can be a downgrade against the current one."
     return 1
   fi
 
@@ -127,7 +158,7 @@ process_pr() { # pr
   step "mergeStateStatus=$state (up to date with $BASE_BRANCH)"
 
   if [[ "$state" == "DIRTY" ]]; then
-    request_rebase "$pr" "This branch conflicts with \`$BASE_BRANCH\` and needs a rebase before it can be merged."
+    maybe_request_rebase "$pr" "$situation" "This branch conflicts with \`$BASE_BRANCH\` and needs a rebase before it can be merged."
     return 1
   fi
 
@@ -135,7 +166,7 @@ process_pr() { # pr
   # diff-lockfiles exits 2 on a downgrade, 0 when clean, 1 on error.
   out="$("${DIFF_LOCKFILES[@]}" "$main_tip" "$head" --format markdown --fail-on-downgrade)" && code=0 || code=$?
   if [[ "$code" == 2 ]]; then
-    request_rebase "$pr" "\`diff-lockfiles\` found a version **downgrade** in this update (evaluated against current \`$BASE_BRANCH\`):
+    maybe_request_rebase "$pr" "$situation" "\`diff-lockfiles\` found a version **downgrade** in this update (evaluated against current \`$BASE_BRANCH\`):
 
 $out
 
@@ -167,7 +198,14 @@ main() {
   [[ "$DRY_RUN" == 1 ]] && log "== DRY RUN (set DRY_RUN=0 to act) =="
 
   local -A skip=()
-  local waits=0 prs pr candidate rc
+  local waits=0 prs pr candidate rc n
+
+  # Pre-seed the skip set with any PRs the caller wants left alone (SKIP_PRS),
+  # so a PR that needs a human does not block the serial queue behind it.
+  for n in ${SKIP_PRS//,/ }; do
+    skip[$n]=1
+    log "Skipping #$n (SKIP_PRS)"
+  done
 
   while :; do
     git fetch -q "origin" "$BASE_BRANCH"
@@ -190,7 +228,11 @@ main() {
     process_pr "$pr" && rc=$? || rc=$?
 
     case "$rc" in
-      2) waits=0 ;;                 # merged: main changed, re-evaluate next oldest
+      # merged: main changed, re-evaluate next oldest. Mark it handled so a
+      # dry run (where the merge is simulated, not real, so the PR stays open)
+      # advances instead of re-picking it forever; harmless in a real run since
+      # a merged PR leaves the open list anyway.
+      2) skip["$pr"]=1; waits=0 ;;
       0) skip["$pr"]=1; waits=0 ;;  # cannot act: skip permanently, move on
       1)                            # waiting on a rebase / CI for this PR
         waits=$((waits + 1))
