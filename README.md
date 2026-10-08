@@ -35,7 +35,7 @@ Options:
   -m, --max-buffer       maximum read buffer size
   -c, --color            colorizes certain output formats (default: false)
   -s, --shallow          only include direct dependencies of the project (default: false)
-  -d, --fail-on-downgrade  exit 2 if any package version is decremented (default: false)
+  -d, --fail-on-downgrade  exit 2 if any package version is decremented (1 if an unsupported lockfile changed) (default: false)
   -h, --help             display help for command
 ```
 
@@ -49,12 +49,17 @@ so a script or CI job can gate on it:
 | --- | --- |
 | `0` | Success, and no package version was decremented |
 | `2` | At least one package version was decremented |
-| `1` | Error (e.g. an invalid git ref or unreadable lockfile) |
+| `1` | Error (e.g. an invalid git ref or unreadable lockfile), or an unsupported lockfile changed |
 
 Output is unchanged — the downgrade is already visible in the diff — so this
 flag only adds the exit code. A downgrade means both the old and new values are
 valid semver and the new one is lower; added, removed, and non-semver entries
 never count.
+
+Only `package-lock.json` files are diffed. If another lockfile changed
+(`pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `npm-shrinkwrap.json`,
+in any directory), a warning naming it goes to stderr, and with
+`--fail-on-downgrade` the exit code is `1`, since it can't be verified.
 
 This is useful for auto-merging Dependabot PRs only when the lockfile moves
 strictly forward. When PR A is merged before PR B, B's lockfile can show a mix

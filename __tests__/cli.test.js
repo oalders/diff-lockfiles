@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -121,5 +121,48 @@ describe('diff-lockfiles CLI added/removed lockfiles', () => {
     const result = run('HEAD', 'HEAD~1', '--format', 'text');
     expect(result.status).toBe(0);
     expect(result.stdout).toMatch(/removed/);
+  });
+});
+
+// A lockfile type the tool can't diff must not pass a --fail-on-downgrade gate
+// silently: it can't be verified, so the run fails closed.
+describe('diff-lockfiles CLI unsupported lockfiles', () => {
+  let repo;
+  const unsupported = join('frontend', 'pnpm-lock.yaml');
+
+  const git = (...args) =>
+    spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+  const run = (...args) =>
+    spawnSync('node', [bin, ...args], { cwd: repo, encoding: 'utf8' });
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), 'diff-lockfiles-unsupported-'));
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'test');
+    mkdirSync(join(repo, 'frontend'));
+    writeFileSync(join(repo, unsupported), 'lockfileVersion: 1\n');
+    git('add', '-A');
+    git('commit', '-qm', 'base');
+    writeFileSync(join(repo, unsupported), 'lockfileVersion: 2\n');
+    git('add', '-A');
+    git('commit', '-qm', 'change pnpm lockfile');
+  });
+
+  afterAll(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it('exits 1 with --fail-on-downgrade and names the file on stderr', () => {
+    const result = run('HEAD~1', 'HEAD', '--fail-on-downgrade');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(unsupported);
+  });
+
+  it('exits 0 without the flag but still warns on stderr', () => {
+    const result = run('HEAD~1', 'HEAD');
+    expect(result.status).toBe(0);
+    expect(result.stderr).toContain(unsupported);
   });
 });
