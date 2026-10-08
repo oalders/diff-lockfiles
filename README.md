@@ -35,7 +35,7 @@ Options:
   -m, --max-buffer       maximum read buffer size
   -c, --color            colorizes certain output formats (default: false)
   -s, --shallow          only include direct dependencies of the project (default: false)
-  -d, --fail-on-downgrade  exit 2 if any package version is decremented (1 if an unsupported lockfile changed) (default: false)
+  -d, --fail-on-downgrade  exit 2 if any package version is decremented (default: false)
   -h, --help             display help for command
 ```
 

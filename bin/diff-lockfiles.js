@@ -31,12 +31,13 @@ async function lockFiles(a, b) {
     // can never be interpreted as shell syntax (command injection). `--end-of-options`
     // then stops git from treating a ref that starts with `-` as an option
     // (e.g. `--output=…`); `--name-only` must precede the marker to stay an option.
+    // `-z` emits raw NUL-delimited paths; otherwise git C-quotes non-ASCII names and they'd go unmatched.
     const output = await execFilePromise(
-        'git', ['diff', '--name-only', '--end-of-options', a, b], { env: gitEnv });
+        'git', ['diff', '--name-only', '-z', '--end-of-options', a, b], { env: gitEnv });
     if (output.stderr.trim() !== '') {
         console.error(output.stderr.trim());
     }
-    const names = output.stdout.trim().split(/\r\n|\r|\n/);
+    const names = output.stdout.split('\0').filter((name) => name !== '');
     return {
         supported: names.filter((line) => /package-lock\.json$/.test(line)),
         unsupported: names.filter((line) => unsupportedLockFiles.has(basename(line))),
@@ -100,7 +101,7 @@ cli
     .option('-m, --max-buffer <bytes>', 'maximum read buffer size in bytes', parseMaxBuffer, 1024 * 10000)
     .option('-c, --color', 'colorizes certain output formats', false)
     .option('-s, --shallow', 'only include direct dependencies of the project', false)
-    .option('-d, --fail-on-downgrade', 'exit 2 if any package version is decremented (1 if an unsupported lockfile changed)', false)
+    .option('-d, --fail-on-downgrade', 'exit 2 if any package version is decremented', false)
     .action(async (from, to, options) => {
         const { supported, unsupported } = await lockFiles(from, to);
         let downgradeFound = false;

@@ -129,9 +129,21 @@ describe('diff-lockfiles CLI added/removed lockfiles', () => {
 describe('diff-lockfiles CLI unsupported lockfiles', () => {
   let repo;
   const unsupported = join('frontend', 'pnpm-lock.yaml');
+  // git C-quotes non-ASCII paths unless -z is used; these must still be matched.
+  const cafeUnsupported = join('café', 'yarn.lock');
+  const cafeLock = join('café', 'package-lock.json');
 
   const git = (...args) =>
     spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+  const commit = (files, tag) => {
+    for (const [name, contents] of Object.entries(files)) {
+      writeFileSync(join(repo, name), contents);
+    }
+    git('add', '-A');
+    git('commit', '-qm', tag);
+    git('tag', tag);
+  };
 
   const run = (...args) =>
     spawnSync('node', [bin, ...args], { cwd: repo, encoding: 'utf8' });
@@ -142,12 +154,16 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     git('config', 'user.email', 'test@example.com');
     git('config', 'user.name', 'test');
     mkdirSync(join(repo, 'frontend'));
-    writeFileSync(join(repo, unsupported), 'lockfileVersion: 1\n');
-    git('add', '-A');
-    git('commit', '-qm', 'base');
-    writeFileSync(join(repo, unsupported), 'lockfileVersion: 2\n');
-    git('add', '-A');
-    git('commit', '-qm', 'change pnpm lockfile');
+    mkdirSync(join(repo, 'café'));
+    commit({
+      [unsupported]: 'lockfileVersion: 1\n',
+      [cafeUnsupported]: 'v1\n',
+      [cafeLock]: lockfile('4.17.21'),
+      'package-lock.json': lockfile('4.17.21'),
+    }, 'base');
+    commit({ [unsupported]: 'lockfileVersion: 2\n' }, 'pnpm');
+    commit({ [cafeUnsupported]: 'v2\n', [cafeLock]: lockfile('4.17.15') }, 'cafe');
+    commit({ [unsupported]: 'lockfileVersion: 3\n', 'package-lock.json': lockfile('4.17.11') }, 'mixed');
   });
 
   afterAll(() => {
@@ -155,14 +171,30 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
   });
 
   it('exits 1 with --fail-on-downgrade and names the file on stderr', () => {
-    const result = run('HEAD~1', 'HEAD', '--fail-on-downgrade');
+    const result = run('base', 'pnpm', '--fail-on-downgrade');
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(unsupported);
   });
 
   it('exits 0 without the flag but still warns on stderr', () => {
-    const result = run('HEAD~1', 'HEAD');
+    const result = run('base', 'pnpm');
     expect(result.status).toBe(0);
     expect(result.stderr).toContain(unsupported);
+  });
+
+  it('matches lockfiles under a non-ASCII directory', () => {
+    const result = run('pnpm', 'cafe', '--fail-on-downgrade', '--format', 'text');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(cafeUnsupported);
+    expect(result.stdout).toContain(cafeLock);
+  });
+
+  it('exits 1, not 2, when a downgrade and an unsupported lockfile both change', () => {
+    const plain = run('cafe', 'mixed', '--format', 'text');
+    const gated = run('cafe', 'mixed', '--format', 'text', '--fail-on-downgrade');
+    expect(gated.status).toBe(1);
+    expect(gated.stdout).toBe(plain.stdout);
+    expect(plain.stdout).toContain('package-lock.json');
+    expect(plain.stdout).toContain('4.17.11');
   });
 });
