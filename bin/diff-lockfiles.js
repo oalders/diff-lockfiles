@@ -4,6 +4,7 @@ import { Command, InvalidArgumentError } from 'commander';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
+import { basename } from 'node:path';
 import { diff, hasDowngrade, print } from '../lib/index.js';
 
 const execFilePromise = promisify(execFile);
@@ -16,6 +17,10 @@ const { version } = require('../package.json');
 // and a benign added/removed lockfile would surface as a hard error.
 const gitEnv = { ...process.env, LC_ALL: 'C' };
 
+const unsupportedLockFiles = new Set([
+    'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'npm-shrinkwrap.json',
+]);
+
 async function lockFiles(a, b) {
     // Filter in JS rather than piping through grep: a pipeline masks a failing
     // `git diff` (e.g. a bad ref) behind grep's own exit code. Letting git's
@@ -26,15 +31,17 @@ async function lockFiles(a, b) {
     // can never be interpreted as shell syntax (command injection). `--end-of-options`
     // then stops git from treating a ref that starts with `-` as an option
     // (e.g. `--output=…`); `--name-only` must precede the marker to stay an option.
+    // `-z` emits raw NUL-delimited paths; otherwise git C-quotes non-ASCII names and they'd go unmatched.
     const output = await execFilePromise(
-        'git', ['diff', '--name-only', '--end-of-options', a, b], { env: gitEnv });
+        'git', ['diff', '--name-only', '-z', '--end-of-options', a, b], { env: gitEnv });
     if (output.stderr.trim() !== '') {
         console.error(output.stderr.trim());
     }
-    return output.stdout
-        .trim()
-        .split(/\r\n|\r|\n/)
-        .filter((line) => /package-lock\.json$/.test(line));
+    const names = output.stdout.split('\0').filter((name) => name !== '');
+    return {
+        supported: names.filter((line) => /package-lock\.json$/.test(line)),
+        unsupported: names.filter((line) => unsupportedLockFiles.has(basename(line))),
+    };
 };
 
 // Return the file's contents at `ref`, or null when the file does not exist
@@ -96,10 +103,14 @@ cli
     .option('-s, --shallow', 'only include direct dependencies of the project', false)
     .option('-d, --fail-on-downgrade', 'exit 2 if any package version is decremented', false)
     .action(async (from, to, options) => {
-        const filenames = await lockFiles(from, to);
+        const { supported, unsupported } = await lockFiles(from, to);
         let downgradeFound = false;
 
-        for (const filename of filenames) {
+        for (const filename of unsupported) {
+            console.error(`Unsupported lockfile changed, not diffed: ${filename}`);
+        }
+
+        for (const filename of supported) {
             const oldLock = parseLock(await lockFileString(options.maxBuffer, from, filename), filename);
             const newLock = parseLock(await lockFileString(options.maxBuffer, to, filename), filename);
             const changes = diff(oldLock, newLock, options.shallow);
@@ -115,7 +126,10 @@ cli
             });
         }
 
-        if (options.failOnDowngrade && downgradeFound) {
+        // An undiffable lockfile can't be verified, so fail closed rather than pass the gate.
+        if (options.failOnDowngrade && unsupported.length > 0) {
+            process.exitCode = 1;
+        } else if (options.failOnDowngrade && downgradeFound) {
             process.exitCode = 2;
         }
     })
