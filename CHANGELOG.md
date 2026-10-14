@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.4.0 - 2026-10-14
+
+- Warn on stderr when an unsupported lockfile (pnpm, yarn, bun,
+  npm-shrinkwrap) changes. With --fail-on-downgrade, such a change now exits 1,
+  since a downgrade can't be ruled out (GH #133)
+- Fixed: changed lockfiles with non-ASCII paths are no longer missed (git diff
+  now runs with -z)
+- Security: bumped ajv to fix a ReDoS vulnerability (GHSA-2g4f-4pwh-qvx6)
+- Updated dependencies (chalk 6.0.1, brace-expansion 5.0.12, fast-uri 3.1.8)
+  and dev dependencies (eslint 10.12, jest 30.5.2, globals 17.13)
+
 ## 1.3.0 - 2026-09-03
 
 - Added --fail-on-downgrade (-d): exit 2 when any package version is
