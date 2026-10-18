@@ -11,6 +11,7 @@ describe('npm package contents', () => {
     const files = JSON.parse(result.stdout)[0].files.map((f) => f.path).sort();
     expect(files).toEqual([
       'CHANGELOG.md',
+      'LICENSE',
       'README.md',
       'bin/diff-lockfiles.js',
       'lib/index.js',
