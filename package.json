@@ -11,6 +11,11 @@
     "diff-lockfiles": "bin/diff-lockfiles.js"
   },
   "main": "lib/index.js",
+  "files": [
+    "bin",
+    "lib",
+    "CHANGELOG.md"
+  ],
   "author": "Olaf Alders <olaf@wundersolutions.com> (https://olafalders.com/)",
   "license": "MIT",
   "scripts": {
