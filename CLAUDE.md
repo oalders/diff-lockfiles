@@ -21,7 +21,7 @@ Runs on Node 20+ (CI matrix: 20, 22, 24, 26).
 - `lib/index.js` — Core logic. Exports `diff(oldLock, newLock, shallow)` which compares `.packages` entries using semver, `format(changes, options)` which returns formatted strings (table, json, markdown, or text), `print(changes, options)` which formats and writes to stdout, and `hasDowngrade(changes)` which reports whether any package version was decremented (drives the CLI's `--fail-on-downgrade` exit code). Color support via chalk.
 - `__tests__/index.test.js` — Jest unit tests for `diff()`, `format()`, and `hasDowngrade()`.
 - `__tests__/cli.test.js` — Jest integration tests for the CLI (spawns real git repos, checks exit codes and `--fail-on-downgrade`).
-- `__tests__/package.test.js` — Jest test asserting the exact `npm pack` file list (the `files` allowlist in `package.json`).
+- `__tests__/package.test.js` — Jest test asserting the exact `npm pack` file list; publishing a new file means adding it to both `files` in `package.json` and the test's expected list.
 - `data/` — Fixture lockfiles (lodash version variants) for testing.
 
 ## Behavior & invariants
