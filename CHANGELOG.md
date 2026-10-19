@@ -1,5 +1,10 @@
 # Change Log
 
+## Unreleased
+
+- Print a notice on stderr when no package-lock.json changed between the two
+  refs, so empty output is no longer ambiguous (GH #135)
+
 ## 1.4.0 - 2026-10-14
 
 - Warn on stderr when an unsupported lockfile (pnpm, yarn, bun,

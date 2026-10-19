@@ -112,6 +112,10 @@ cli
         for (const filename of unsupported) {
             console.error(`Unsupported lockfile changed, not diffed: ${filename}`);
         }
+        // Empty stdout is otherwise ambiguous: no lockfile changed vs. no versions moved.
+        if (supported.length === 0) {
+            console.error(`No package-lock.json changes between ${from} and ${to}`);
+        }
 
         for (const filename of supported) {
             const parse = isPnpm(filename) ? parsePnpmLock : parseLock;

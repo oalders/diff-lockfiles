@@ -182,6 +182,13 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     expect(result.stderr).toContain(unsupported);
   });
 
+  it('notes on stderr, not stdout, when no package-lock.json changed', () => {
+    const result = run('base', 'yarn');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('No package-lock.json changes between base and yarn');
+  });
+
   it('matches lockfiles under a non-ASCII directory', () => {
     const result = run('yarn', 'cafe', '--fail-on-downgrade', '--format', 'text');
     expect(result.status).toBe(1);
@@ -196,6 +203,7 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     expect(gated.stdout).toBe(plain.stdout);
     expect(plain.stdout).toContain('package-lock.json');
     expect(plain.stdout).toContain('4.17.11');
+    expect(plain.stderr).not.toContain('No package-lock.json changes');
   });
 });
 
