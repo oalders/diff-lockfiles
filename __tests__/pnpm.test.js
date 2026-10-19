@@ -18,6 +18,10 @@ describe('parsePnpmLock', () => {
     expect(() => parsePnpmLock(`lockfileVersion: '${version}'\n`, 'pnpm-lock.yaml')).toThrow(/lockfileVersion/);
   });
 
+  it.each(['9.0', "'9.1'"])('accepts lockfileVersion %s', (version) => {
+    expect(() => parsePnpmLock(`lockfileVersion: ${version}\n`, 'pnpm-lock.yaml')).not.toThrow();
+  });
+
   it('rejects multiple YAML documents with a clear error', () => {
     expect(() => parsePnpmLock("lockfileVersion: '9.0'\n---\nlockfileVersion: '9.0'\n", 'pnpm-lock.yaml'))
       .toThrow('Could not parse pnpm-lock.yaml as YAML: multiple YAML documents are not supported');
@@ -87,7 +91,7 @@ describe('diffPnpm', () => {
   });
 
   it('shallow diffs importer direct dependencies with npm-style keys and bare versions', () => {
-    const importers = ([react, b, alias]) => lock(`importers:
+    const importers = ([react, b, alias, transitive]) => lock(`importers:
   .:
     dependencies:
       react:
@@ -98,15 +102,16 @@ describe('diffPnpm', () => {
       b:
         specifier: ${b}
         version: ${b}
+    optionalDependencies:
       strw:
         specifier: npm:string-width@^4.0.0
         version: ${alias}
 packages:
-  'transitive@1.0.0': {}
+  'transitive@${transitive}': {}
 `);
     const changes = diffPnpm(
-      importers(['18.2.0(react-dom@18.2.0)', 'link:../b', 'string-width@4.2.3']),
-      importers(['18.3.0(react-dom@18.3.0)', '2.0.0', 'string-width@4.3.0']),
+      importers(['18.2.0(react-dom@18.2.0)', 'link:../b', 'string-width@4.2.3', '1.0.0']),
+      importers(['18.3.0(react-dom@18.3.0)', '2.0.0', 'string-width@4.3.0', '2.0.0']),
       true);
     expect(changes).toEqual({
       'node_modules/react': ['18.2.0', '18.3.0'],

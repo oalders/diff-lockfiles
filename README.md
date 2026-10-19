@@ -88,7 +88,11 @@ keyed by its name; with several rows, each is keyed `<name>@<old version>`, or
 `<name>@<new version>` for an addition. So a downgrade is flagged when the
 package's highest changed version drops. This is a heuristic: removing `2.0.0`
 while adding `1.5.0` and `3.0.0` pairs `2.0.0 -> 3.0.0` and is not flagged,
-even if a dependent really moved from `2.0.0` to `1.5.0`.
+even if a dependent really moved from `2.0.0` to `1.5.0`. Deep mode only sees
+which versions exist in `packages`, so a transitive dependent moving between
+versions that both remain in the tree, or the top version disappearing while a
+lower one remains, isn't flagged (direct dependencies are still caught by the
+importer check below).
 
 With `--fail-on-downgrade`, the direct dependencies of every workspace
 importer are also checked, so a direct dependency moved down to a version that
