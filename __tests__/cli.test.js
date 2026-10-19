@@ -219,8 +219,8 @@ describe('diff-lockfiles CLI pnpm lockfiles', () => {
   const git = (...args) =>
     spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
 
-  const commit = (contents, tag) => {
-    writeFileSync(join(repo, 'pnpm-lock.yaml'), contents);
+  const commit = (contents, tag, path = 'pnpm-lock.yaml') => {
+    writeFileSync(join(repo, path), contents);
     git('add', '-A');
     git('commit', '-qm', tag);
     git('tag', tag);
@@ -239,6 +239,8 @@ describe('diff-lockfiles CLI pnpm lockfiles', () => {
     commit(pnpmLock('2.0.0', ['foo@1.0.0', 'foo@2.0.0', 'bar@1.0.0']), 'downgrade');
     // foo@1.0.0 was already in the tree, so `packages` shows only foo@2.0.0 removed.
     commit(pnpmLock('1.0.0', ['foo@1.0.0', 'bar@1.0.0']), 'direct-downgrade');
+    mkdirSync(join(repo, 'frontend'));
+    commit(pnpmLock('1.0.0', ['foo@1.0.0']), 'subdir', join('frontend', 'pnpm-lock.yaml'));
   });
 
   afterAll(() => {
@@ -259,5 +261,11 @@ describe('diff-lockfiles CLI pnpm lockfiles', () => {
     const result = run('downgrade', 'direct-downgrade', '--format', 'text', '--fail-on-downgrade');
     expect(result.status).toBe(2);
     expect(result.stdout).toBe('pnpm-lock.yaml\nfoo removed\n');
+  });
+
+  it('reports a pnpm lockfile added in a subdirectory and exits 0', () => {
+    const result = run('direct-downgrade', 'subdir', '--format', 'text', '--fail-on-downgrade');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('frontend/pnpm-lock.yaml\nfoo added\n');
   });
 });

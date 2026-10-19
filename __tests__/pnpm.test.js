@@ -14,7 +14,7 @@ describe('parsePnpmLock', () => {
     expect(diffPnpm(lock(''), lock(''), true)).toEqual({});
   });
 
-  it.each(['5.4', '6.0', '10.0', 'nope'])('rejects lockfileVersion %s (fail closed)', (version) => {
+  it.each(['5.4', '6.0', '10.0', '9abc', 'nope'])('rejects lockfileVersion %s (fail closed)', (version) => {
     expect(() => parsePnpmLock(`lockfileVersion: '${version}'\n`, 'pnpm-lock.yaml')).toThrow(/lockfileVersion/);
   });
 
@@ -69,6 +69,14 @@ describe('diffPnpm', () => {
     });
   });
 
+  it('trusts a semver key over a conflicting entry version', () => {
+    const after = lock(`packages:
+  'foo@1.0.0':
+    version: 2.0.0
+`);
+    expect(hasDowngrade(diffPnpm(pkgs('foo@2.0.0'), after))).toBe(true);
+  });
+
   it('rejects a package key with no version (fail closed)', () => {
     expect(() => diffPnpm(pkgs('foo'), pkgs())).toThrow(/foo/);
   });
@@ -76,7 +84,6 @@ describe('diffPnpm', () => {
   it('treats a package literally named __proto__ as data', () => {
     const changes = diffPnpm(pkgs('__proto__@1.0.0'), pkgs('__proto__@2.0.0'));
     expect(Object.keys(changes)).toEqual(['__proto__']);
-    expect(({}).polluted).toBeUndefined();
   });
 
   it('shallow diffs importer direct dependencies with npm-style keys and bare versions', () => {

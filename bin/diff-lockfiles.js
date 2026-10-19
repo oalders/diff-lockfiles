@@ -122,7 +122,7 @@ cli
             // A direct dependency moved down to a version already elsewhere in the
             // tree shows in pnpm's `packages` only as a removal; the importer view catches it.
             if (hasDowngrade(changes) ||
-                (isPnpm(filename) && hasDowngrade(diffPnpm(oldLock, newLock, true)))) {
+                (isPnpm(filename) && hasDowngrade(options.shallow ? changes : diffPnpm(oldLock, newLock, true)))) {
                 downgradeFound = true;
             }
 

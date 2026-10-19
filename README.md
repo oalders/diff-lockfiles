@@ -83,13 +83,12 @@ error (exit `1`). Rows are keyed by package name rather than
 
 pnpm can hold several versions of one package. Per package, the versions that
 disappeared and the ones that appeared are each sorted highest first and paired
-in order; leftovers show as added or removed. When a package has more than one
-row, each is keyed `<name>@<old version>` (`<name>@<new version>` for an
-addition). So a downgrade
-is flagged when the package's highest changed version drops. This is a
-heuristic: removing `2.0.0` while adding `1.5.0` and `3.0.0` pairs
-`2.0.0 -> 3.0.0` and is not flagged, even if a dependent really moved from
-`2.0.0` to `1.5.0`.
+in order; leftovers show as added or removed. A package with a single row is
+keyed by its name; with several rows, each is keyed `<name>@<old version>`, or
+`<name>@<new version>` for an addition. So a downgrade is flagged when the
+package's highest changed version drops. This is a heuristic: removing `2.0.0`
+while adding `1.5.0` and `3.0.0` pairs `2.0.0 -> 3.0.0` and is not flagged,
+even if a dependent really moved from `2.0.0` to `1.5.0`.
 
 With `--fail-on-downgrade`, the direct dependencies of every workspace
 importer are also checked, so a direct dependency moved down to a version that
