@@ -27,7 +27,7 @@ diff-lockfiles --color HEAD~1 HEAD
 diff-lockfiles --help
 Usage:  diff-lockfiles [options] <from> <to>
 
-diff all changed package-lock.json files in repo
+diff all changed package-lock.json and pnpm-lock.yaml files in repo
 
 Options:
   -V, --version          output the version number
@@ -56,10 +56,10 @@ flag only adds the exit code. A downgrade means both the old and new values are
 valid semver and the new one is lower; added, removed, and non-semver entries
 never count.
 
-Only `package-lock.json` files are diffed. If another lockfile changed
-(`pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, `bun.lockb`, `npm-shrinkwrap.json`,
-in any directory), a warning naming it goes to stderr, and with
-`--fail-on-downgrade` the exit code is `1`, since it can't be verified.
+Only `package-lock.json` (lockfileVersion 2+) and `pnpm-lock.yaml` files are
+diffed. If another lockfile changed (`yarn.lock`, `bun.lock`, `bun.lockb`,
+`npm-shrinkwrap.json`, in any directory), a warning naming it goes to stderr,
+and with `--fail-on-downgrade` the exit code is `1`, since it can't be verified.
 
 This is useful for auto-merging Dependabot PRs only when the lockfile moves
 strictly forward. When PR A is merged before PR B, B's lockfile can show a mix
@@ -73,6 +73,30 @@ case $? in
   *) echo "diff-lockfiles failed" >&2; exit 1 ;;
 esac
 ```
+
+### pnpm lockfiles
+
+Only pnpm lockfile v9 (`lockfileVersion: '9.0'`, written by pnpm 9 and 10) is
+supported; any other version, or a file with multiple YAML documents, is an
+error (exit `1`). Rows are keyed by package name rather than
+`node_modules/<name>`.
+
+pnpm can hold several versions of one package. Per package, the versions that
+disappeared and the ones that appeared are each sorted highest first and paired
+in order; leftovers show as added or removed. When a package has more than one
+row, each is keyed `<name>@<old version>` (`<name>@<new version>` for an
+addition). So a downgrade
+is flagged when the package's highest changed version drops. This is a
+heuristic: removing `2.0.0` while adding `1.5.0` and `3.0.0` pairs
+`2.0.0 -> 3.0.0` and is not flagged, even if a dependent really moved from
+`2.0.0` to `1.5.0`.
+
+With `--fail-on-downgrade`, the direct dependencies of every workspace
+importer are also checked, so a direct dependency moved down to a version that
+was already elsewhere in the tree still exits `2`. `--shallow` shows only those
+direct dependencies (`dependencies`, `devDependencies`,
+`optionalDependencies`), keyed `node_modules/<name>` for the root and
+`<importer>/node_modules/<name>` for workspace packages.
 
 ### `--format=table` (default)
 

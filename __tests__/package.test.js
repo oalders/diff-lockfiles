@@ -15,6 +15,7 @@ describe('npm package contents', () => {
       'README.md',
       'bin/diff-lockfiles.js',
       'lib/index.js',
+      'lib/pnpm.js',
       'package.json',
     ]);
   });

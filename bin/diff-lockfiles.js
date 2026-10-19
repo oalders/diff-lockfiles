@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import { basename } from 'node:path';
 import { diff, hasDowngrade, print } from '../lib/index.js';
+import { diffPnpm, parsePnpmLock } from '../lib/pnpm.js';
 
 const execFilePromise = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -18,8 +19,10 @@ const { version } = require('../package.json');
 const gitEnv = { ...process.env, LC_ALL: 'C' };
 
 const unsupportedLockFiles = new Set([
-    'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb', 'npm-shrinkwrap.json',
+    'yarn.lock', 'bun.lock', 'bun.lockb', 'npm-shrinkwrap.json',
 ]);
+
+const isPnpm = (filename) => basename(filename) === 'pnpm-lock.yaml';
 
 async function lockFiles(a, b) {
     // Filter in JS rather than piping through grep: a pipeline masks a failing
@@ -39,7 +42,7 @@ async function lockFiles(a, b) {
     }
     const names = output.stdout.split('\0').filter((name) => name !== '');
     return {
-        supported: names.filter((line) => /package-lock\.json$/.test(line)),
+        supported: names.filter((line) => /package-lock\.json$/.test(line) || isPnpm(line)),
         unsupported: names.filter((line) => unsupportedLockFiles.has(basename(line))),
     };
 };
@@ -94,7 +97,7 @@ function parseMaxBuffer(value) {
 const cli = new Command();
 cli
     .command('diff-lockfiles')
-    .description('diff all changed package-lock.json files in repo')
+    .description('diff all changed package-lock.json and pnpm-lock.yaml files in repo')
     .version(version)
     .arguments('<from> <to>')
     .option('-f, --format <format>', 'changes the output format (table|json|markdown|text)', 'table')
@@ -111,11 +114,15 @@ cli
         }
 
         for (const filename of supported) {
-            const oldLock = parseLock(await lockFileString(options.maxBuffer, from, filename), filename);
-            const newLock = parseLock(await lockFileString(options.maxBuffer, to, filename), filename);
-            const changes = diff(oldLock, newLock, options.shallow);
+            const parse = isPnpm(filename) ? parsePnpmLock : parseLock;
+            const oldLock = parse(await lockFileString(options.maxBuffer, from, filename), filename);
+            const newLock = parse(await lockFileString(options.maxBuffer, to, filename), filename);
+            const changes = (isPnpm(filename) ? diffPnpm : diff)(oldLock, newLock, options.shallow);
 
-            if (hasDowngrade(changes)) {
+            // A direct dependency moved down to a version already elsewhere in the
+            // tree shows in pnpm's `packages` only as a removal; the importer view catches it.
+            if (hasDowngrade(changes) ||
+                (isPnpm(filename) && hasDowngrade(diffPnpm(oldLock, newLock, true)))) {
                 downgradeFound = true;
             }
 
