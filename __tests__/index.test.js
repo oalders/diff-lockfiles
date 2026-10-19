@@ -68,6 +68,18 @@ describe('diff', () => {
     });
   });
 
+  it('ignores unchanged versionless entries (workspace root and links)', () => {
+    const lock = {
+      packages: {
+        '': { name: 'monorepo', workspaces: ['packages/*'] },
+        'node_modules/@acme/ui': { resolved: 'packages/ui', link: true },
+        'packages/ui': { name: '@acme/ui' },
+        'node_modules/lodash': { version: '4.17.21' },
+      },
+    };
+    expect(diff(lock, structuredClone(lock))).toEqual({});
+  });
+
   it('treats a package literally named __proto__ as data, not prototype pollution', () => {
     // Build via JSON.parse (not an object literal, which would set the
     // prototype) to get a real own `__proto__` data key, as a crafted lockfile
