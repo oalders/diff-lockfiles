@@ -174,7 +174,7 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     const result = run('base', 'yarn', '--fail-on-downgrade');
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(unsupported);
-    expect(result.stderr).toContain('No package-lock.json changes');
+    expect(result.stderr).toContain('No package-lock.json or pnpm-lock.yaml changes');
   });
 
   it('exits 0 without the flag but still warns on stderr', () => {
@@ -183,18 +183,18 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     expect(result.stderr).toContain(unsupported);
   });
 
-  it('notes on stderr, not stdout, when no package-lock.json changed', () => {
+  it('notes on stderr, not stdout, when no supported lockfile changed', () => {
     const result = run('base', 'yarn');
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('No package-lock.json changes between base and yarn');
+    expect(result.stderr).toContain('No package-lock.json or pnpm-lock.yaml changes between base and yarn');
   });
 
   it('notes on stderr when nothing changed at all', () => {
     const result = run('base', 'base');
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('');
-    expect(result.stderr).toContain('No package-lock.json changes between base and base');
+    expect(result.stderr).toContain('No package-lock.json or pnpm-lock.yaml changes between base and base');
   });
 
   it('matches lockfiles under a non-ASCII directory', () => {
@@ -211,7 +211,7 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     expect(gated.stdout).toBe(plain.stdout);
     expect(plain.stdout).toContain('package-lock.json');
     expect(plain.stdout).toContain('4.17.11');
-    expect(plain.stderr).not.toContain('No package-lock.json changes');
+    expect(plain.stderr).not.toContain('No package-lock.json or pnpm-lock.yaml changes');
   });
 });
 
@@ -267,6 +267,7 @@ describe('diff-lockfiles CLI pnpm lockfiles', () => {
     const result = run('base', 'upgrade', '--format', 'text', '--fail-on-downgrade');
     expect(result.status).toBe(0);
     expect(result.stdout).toBe('pnpm-lock.yaml\nbar 1.0.0 -> 1.1.0\n');
+    expect(result.stderr).not.toContain('No package-lock.json or pnpm-lock.yaml changes');
   });
 
   it('exits 2 with --fail-on-downgrade on a downgrade', () => {

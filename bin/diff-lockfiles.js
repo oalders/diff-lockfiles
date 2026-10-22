@@ -114,7 +114,7 @@ cli
         }
         // Without this, empty stdout can't tell "no lockfile changed" from "no versions moved".
         if (supported.length === 0) {
-            console.error(`No package-lock.json changes between ${from} and ${to}`);
+            console.error(`No package-lock.json or pnpm-lock.yaml changes between ${from} and ${to}`);
         }
 
         for (const filename of supported) {

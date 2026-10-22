@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Print a notice on stderr when no package-lock.json changed between the two
-  refs, so empty output is no longer ambiguous (GH #135)
+- Print a notice on stderr when no package-lock.json or pnpm-lock.yaml changed
+  between the two refs, so empty output is no longer ambiguous (GH #135)
 
 ## 1.4.0 - 2026-10-14
 

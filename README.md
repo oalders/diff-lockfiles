@@ -60,8 +60,8 @@ Only `package-lock.json` (lockfileVersion 2+) and `pnpm-lock.yaml` files are
 diffed. If another lockfile changed (`yarn.lock`, `bun.lock`, `bun.lockb`,
 `npm-shrinkwrap.json`, in any directory), a warning naming it goes to stderr,
 and with `--fail-on-downgrade` the exit code is `1`, since it can't be verified.
-When no `package-lock.json` changed at all, a notice saying so goes to stderr
-and stdout stays empty.
+When no `package-lock.json` or `pnpm-lock.yaml` changed at all, a notice saying
+so goes to stderr and stdout stays empty.
 
 This is useful for auto-merging Dependabot PRs only when the lockfile moves
 strictly forward. When PR A is merged before PR B, B's lockfile can show a mix
