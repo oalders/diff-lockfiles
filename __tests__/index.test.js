@@ -52,6 +52,13 @@ describe('diff', () => {
     expect(() => diff({ packages: {} }, {})).toThrow(/packages/);
   });
 
+  it('compares non-semver versions without throwing', () => {
+    // Regression: semver.eq threw "Invalid Version" on e.g. pnpm `link:` versions.
+    const oldLock = { packages: { ...pkg('same', 'link:../a'), ...pkg('linked', 'link:../b') } };
+    const newLock = { packages: { ...pkg('same', 'link:../a'), ...pkg('linked', '1.0.0') } };
+    expect(diff(oldLock, newLock)).toEqual({ 'node_modules/linked': ['link:../b', '1.0.0'] });
+  });
+
   it('does not crash on a null package descriptor', () => {
     const oldLock = { packages: { 'node_modules/broken': null } };
     const newLock = { packages: { 'node_modules/broken': { version: '1.0.0' } } };
@@ -203,6 +210,13 @@ describe('format', () => {
     expect(result).toContain('node_modules/foo 1.0.0 -> 2.0.0');
     expect(result).toContain('node_modules/bar added');
     expect(result).toContain('node_modules/baz removed');
+  });
+
+  it('shows a non-semver change in text format, with or without color', () => {
+    const gitChange = { foo: ['1.0.0', 'git+https://example.com/foo.git#abc'] };
+    for (const color of [false, true]) {
+      expect(format(gitChange, { format: 'text', color })).toContain('1.0.0 -> git+https://example.com/foo.git#abc');
+    }
   });
 
   it('returns markdown table for markdown format', () => {

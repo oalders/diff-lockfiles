@@ -128,7 +128,7 @@ describe('diff-lockfiles CLI added/removed lockfiles', () => {
 // silently: it can't be verified, so the run fails closed.
 describe('diff-lockfiles CLI unsupported lockfiles', () => {
   let repo;
-  const unsupported = join('frontend', 'pnpm-lock.yaml');
+  const unsupported = join('frontend', 'yarn.lock');
   // git C-quotes non-ASCII paths unless -z is used; these must still be matched.
   const cafeUnsupported = join('café', 'yarn.lock');
   const cafeLock = join('café', 'package-lock.json');
@@ -156,14 +156,14 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     mkdirSync(join(repo, 'frontend'));
     mkdirSync(join(repo, 'café'));
     commit({
-      [unsupported]: 'lockfileVersion: 1\n',
+      [unsupported]: 'v1\n',
       [cafeUnsupported]: 'v1\n',
       [cafeLock]: lockfile('4.17.21'),
       'package-lock.json': lockfile('4.17.21'),
     }, 'base');
-    commit({ [unsupported]: 'lockfileVersion: 2\n' }, 'pnpm');
+    commit({ [unsupported]: 'v2\n' }, 'yarn');
     commit({ [cafeUnsupported]: 'v2\n', [cafeLock]: lockfile('4.17.15') }, 'cafe');
-    commit({ [unsupported]: 'lockfileVersion: 3\n', 'package-lock.json': lockfile('4.17.11') }, 'mixed');
+    commit({ [unsupported]: 'v3\n', 'package-lock.json': lockfile('4.17.11') }, 'mixed');
   });
 
   afterAll(() => {
@@ -171,19 +171,19 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
   });
 
   it('exits 1 with --fail-on-downgrade and names the file on stderr', () => {
-    const result = run('base', 'pnpm', '--fail-on-downgrade');
+    const result = run('base', 'yarn', '--fail-on-downgrade');
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(unsupported);
   });
 
   it('exits 0 without the flag but still warns on stderr', () => {
-    const result = run('base', 'pnpm');
+    const result = run('base', 'yarn');
     expect(result.status).toBe(0);
     expect(result.stderr).toContain(unsupported);
   });
 
   it('matches lockfiles under a non-ASCII directory', () => {
-    const result = run('pnpm', 'cafe', '--fail-on-downgrade', '--format', 'text');
+    const result = run('yarn', 'cafe', '--fail-on-downgrade', '--format', 'text');
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(cafeUnsupported);
     expect(result.stdout).toContain(cafeLock);
@@ -196,5 +196,76 @@ describe('diff-lockfiles CLI unsupported lockfiles', () => {
     expect(gated.stdout).toBe(plain.stdout);
     expect(plain.stdout).toContain('package-lock.json');
     expect(plain.stdout).toContain('4.17.11');
+  });
+});
+
+// pnpm-lock.yaml: root importer depends on foo; bar is transitive.
+describe('diff-lockfiles CLI pnpm lockfiles', () => {
+  let repo;
+
+  const pnpmLock = (foo, packages) => [
+    "lockfileVersion: '9.0'",
+    'importers:',
+    '  .:',
+    '    dependencies:',
+    '      foo:',
+    `        specifier: ^${foo}`,
+    `        version: ${foo}`,
+    'packages:',
+    ...packages.map((key) => `  '${key}': {}`),
+    '',
+  ].join('\n');
+
+  const git = (...args) =>
+    spawnSync('git', args, { cwd: repo, encoding: 'utf8' });
+
+  const commit = (contents, tag, path = 'pnpm-lock.yaml') => {
+    writeFileSync(join(repo, path), contents);
+    git('add', '-A');
+    git('commit', '-qm', tag);
+    git('tag', tag);
+  };
+
+  const run = (...args) =>
+    spawnSync('node', [bin, ...args], { cwd: repo, encoding: 'utf8' });
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), 'diff-lockfiles-pnpm-'));
+    git('init', '-q');
+    git('config', 'user.email', 'test@example.com');
+    git('config', 'user.name', 'test');
+    commit(pnpmLock('2.0.0', ['foo@1.0.0', 'foo@2.0.0', 'bar@1.0.0']), 'base');
+    commit(pnpmLock('2.0.0', ['foo@1.0.0', 'foo@2.0.0', 'bar@1.1.0']), 'upgrade');
+    commit(pnpmLock('2.0.0', ['foo@1.0.0', 'foo@2.0.0', 'bar@1.0.0']), 'downgrade');
+    // foo@1.0.0 was already in the tree, so `packages` shows only foo@2.0.0 removed.
+    commit(pnpmLock('1.0.0', ['foo@1.0.0', 'bar@1.0.0']), 'direct-downgrade');
+    mkdirSync(join(repo, 'frontend'));
+    commit(pnpmLock('1.0.0', ['foo@1.0.0']), 'subdir', join('frontend', 'pnpm-lock.yaml'));
+  });
+
+  afterAll(() => {
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  it('diffs an upgrade and exits 0 with --fail-on-downgrade', () => {
+    const result = run('base', 'upgrade', '--format', 'text', '--fail-on-downgrade');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('pnpm-lock.yaml\nbar 1.0.0 -> 1.1.0\n');
+  });
+
+  it('exits 2 with --fail-on-downgrade on a downgrade', () => {
+    expect(run('upgrade', 'downgrade', '--fail-on-downgrade').status).toBe(2);
+  });
+
+  it('exits 2 when a direct dependency drops to a version already in the tree', () => {
+    const result = run('downgrade', 'direct-downgrade', '--format', 'text', '--fail-on-downgrade');
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe('pnpm-lock.yaml\nfoo removed\n');
+  });
+
+  it('reports a pnpm lockfile added in a subdirectory and exits 0', () => {
+    const result = run('direct-downgrade', 'subdir', '--format', 'text', '--fail-on-downgrade');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe('frontend/pnpm-lock.yaml\nfoo added\n');
   });
 });
