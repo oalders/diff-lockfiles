@@ -1,9 +1,22 @@
 # Change Log
 
-## Unreleased
+## 1.5.0 - 2026-10-28
 
+- Added support for pnpm-lock.yaml (lockfile v9). It is no longer treated as
+  an unsupported lockfile, so with --fail-on-downgrade a pnpm change now exits
+  0 or 2 instead of 1. Other pnpm lockfile versions and multi-document YAML
+  fail closed. With --fail-on-downgrade the importers' direct dependencies are
+  also checked (GH #134)
 - Print a notice on stderr when no package-lock.json or pnpm-lock.yaml changed
   between the two refs, so empty output is no longer ambiguous (GH #135)
+- Fixed: versionless lockfile entries (the workspace root, workspace links)
+  are no longer reported as added when unchanged (GH #141)
+- Fixed: non-semver versions (e.g. `link:` or git URLs) no longer crash the
+  diff or the text formatter
+- The published package is now restricted by a `files` allowlist (bin/,
+  lib/, CHANGELOG.md, plus the LICENSE, README.md and package.json npm always
+  includes) (GH #140)
+- Added the yaml dependency (for pnpm-lock.yaml parsing)
 
 ## 1.4.0 - 2026-10-14
 
